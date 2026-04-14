@@ -9,15 +9,14 @@ import 'package:flutter/material.dart';
 // production or any public repository.
 // =============================================================================
 
-const String _kClientId = 'auh_highlight_mob_stage';
-const String _kClientSecret = 'xfGKpgaaoaTVedNf';
+const String _kClientId = 'your_client_id';
+const String _kClientSecret = 'your_client_secret';
 
 /// Registered redirect URI (must match UAE PASS app registration exactly).
-const String _kRedirectUri =
-    'https://highlight-business-portal.vercel.app/api/auth/callback/uaepass';
+const String _kRedirectUri = 'your_app_scheme:///resume_authn';
 
 /// App URL scheme (documented for deep linking / universal links setup).
-const String _kUrlScheme = 'com.example.authpassuae';
+const String _kUrlScheme = 'your_app_scheme';
 
 /// `false` = STG idhub; `true` = production idhub.
 const bool _kIsProduction = false;

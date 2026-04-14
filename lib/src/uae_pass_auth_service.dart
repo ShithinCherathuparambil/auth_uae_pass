@@ -10,7 +10,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'uae_pass_endpoints.dart';
 import 'uae_pass_mobile_api.dart';
-import 'uae_pass_models.dart';
 
 class AuthUaePass {
   const AuthUaePass({
@@ -88,7 +87,13 @@ class AuthUaePass {
     // Legacy support for user's explicit onResult handling
     return appLinks.uriLinkStream.listen((uri) {
       if (!_isFlowInProgress) {
-        _handleGlobalResumption(context: context, uri: uri, request: defaultRequest, onResult: onResult);
+        if (!context.mounted) return;
+        _handleGlobalResumption(
+          context: context,
+          uri: uri,
+          request: defaultRequest,
+          onResult: onResult,
+        );
       }
     });
   }
@@ -308,6 +313,9 @@ class AuthUaePass {
       
       if (isResumption) {
         debugPrint('AuthUaePass: Resuming interrupted flow via handleResumption...');
+        if (!context.mounted) {
+          return const UaePassAuthResult(status: UaePassFlowStatus.cancelled);
+        }
         return authenticateWithResumption(
           context,
           deepLink: pendingUri,
