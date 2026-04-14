@@ -421,30 +421,76 @@ class AuthUaePass {
 
   Future<UaePassAuthResult> logout(
     BuildContext context, {
-
     required UaePassEnvironment env,
     required String redirectUri,
   }) async {
-    final result = await Navigator.of(context).push<UaePassAuthResult>(
-      MaterialPageRoute<UaePassAuthResult>(
-        builder: (_) => _UaePassWebViewPage(
-          initialUrl: logoutUrl(env: env, redirectUri: redirectUri),
-          redirectUri: redirectUri,
-          cancelledUriPatterns: const <String>[],
-          externalAppSchemes: const <String>[],
-          headers: {},
-          userAgent: null,
-          isLogoutFlow: true,
-          resumeAuthnPath: 'resume_authn',
-          deepLinkScheme: null,
-          uaePassScheme: 'uaepass',
-          enableMobileDeepLinkRewrite: false,
-        ),
-        fullscreenDialog: true,
+    debugPrint('AuthUaePass: Starting silent logout...');
+    final Completer<UaePassAuthResult> completer = Completer<UaePassAuthResult>();
+    HeadlessInAppWebView? headless;
+
+    headless = HeadlessInAppWebView(
+      initialUrlRequest: URLRequest(
+        url: WebUri(logoutUrl(env: env, redirectUri: redirectUri)),
       ),
+      initialSettings: InAppWebViewSettings(
+        javaScriptEnabled: true,
+        clearCache: true,
+      ),
+      onLoadStart: (controller, url) {
+        if (url == null) return;
+        debugPrint('AuthUaePass: Silent logout loading $url');
+        
+        final UaePassAuthResult? result = UaePassCallbackParser.parse(
+          callbackUri: Uri.parse(url.toString()),
+          redirectUri: Uri.parse(redirectUri),
+          cancelledUriPatterns: const <String>[],
+          isLogoutFlow: true,
+        );
+        if (result != null && result.status == UaePassFlowStatus.logoutSuccess) {
+          debugPrint('AuthUaePass: Silent logout complete');
+          if (!completer.isCompleted) {
+            completer.complete(result);
+          }
+        }
+      },
+      shouldOverrideUrlLoading: (controller, navigationAction) async {
+        final WebUri? url = navigationAction.request.url;
+        if (url == null) return NavigationActionPolicy.ALLOW;
+
+        final UaePassAuthResult? result = UaePassCallbackParser.parse(
+          callbackUri: Uri.parse(url.toString()),
+          redirectUri: Uri.parse(redirectUri),
+          cancelledUriPatterns: const <String>[],
+          isLogoutFlow: true,
+        );
+        if (result != null && result.status == UaePassFlowStatus.logoutSuccess) {
+          debugPrint('AuthUaePass: Silent logout complete via override');
+          if (!completer.isCompleted) {
+            completer.complete(result);
+          }
+          return NavigationActionPolicy.CANCEL;
+        }
+        return NavigationActionPolicy.ALLOW;
+      },
     );
 
-    return result ?? const UaePassAuthResult(status: UaePassFlowStatus.error);
+    try {
+      await headless.run();
+      // Wait for completion with a reasonable timeout
+      final result = await completer.future.timeout(
+        const Duration(seconds: 20),
+        onTimeout: () {
+          debugPrint('AuthUaePass: Silent logout timed out');
+          return const UaePassAuthResult(status: UaePassFlowStatus.logoutSuccess);
+        },
+      );
+      return result;
+    } catch (e) {
+      debugPrint('AuthUaePass: Error during silent logout: $e');
+      return const UaePassAuthResult(status: UaePassFlowStatus.error);
+    } finally {
+      await headless.dispose();
+    }
   }
 
   /// Authorize URL (acr_values applied by package when [environment] is set).
