@@ -8,13 +8,10 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
-
 class AuthUaePass {
-  const AuthUaePass({
-    http.Client? httpClient,
-    AppLinks? appLinks,
-  })  : _httpClient = httpClient,
-        _appLinks = appLinks;
+  const AuthUaePass({http.Client? httpClient, AppLinks? appLinks})
+    : _httpClient = httpClient,
+      _appLinks = appLinks;
 
   final http.Client? _httpClient;
   final AppLinks? _appLinks;
@@ -72,7 +69,9 @@ class AuthUaePass {
     }
   }
 
-  @Deprecated('Setup is now handled internally. You can remove this from initState.')
+  @Deprecated(
+    'Setup is now handled internally. You can remove this from initState.',
+  )
   StreamSubscription<Uri>? listenToDeepLinks({
     required BuildContext context,
     required UaePassAuthRequest defaultRequest,
@@ -81,7 +80,7 @@ class AuthUaePass {
   }) {
     _ensureInitialized();
     final AppLinks appLinks = AppLinks();
-    
+
     // Legacy support for user's explicit onResult handling
     return appLinks.uriLinkStream.listen((uri) {
       if (!_isFlowInProgress) {
@@ -280,20 +279,22 @@ class AuthUaePass {
   }) async {
     _ensureInitialized();
     Uri? pendingUri;
-    
+
     // 1. Check if we have a captured runtime link
     if (_lastCapturedLink != null) {
       pendingUri = _lastCapturedLink;
       _lastCapturedLink = null; // Consume
-    } 
-    
+    }
+
     // 2. Check if there was an initial link (Cold Start)
     if (pendingUri == null && !_initialLinkHandled) {
       _initialLinkHandled = true;
       try {
         pendingUri = await _links.getInitialLink();
         if (pendingUri != null) {
-          debugPrint('AuthUaePass: Found initial link for cold start: $pendingUri');
+          debugPrint(
+            'AuthUaePass: Found initial link for cold start: $pendingUri',
+          );
         }
       } catch (e) {
         debugPrint('AuthUaePass: Error getting initial link: $e');
@@ -308,9 +309,11 @@ class AuthUaePass {
         deepLinkScheme: request.deepLinkScheme,
         resumeAuthnPath: request.resumeAuthnPath,
       );
-      
+
       if (isResumption) {
-        debugPrint('AuthUaePass: Resuming interrupted flow via handleResumption...');
+        debugPrint(
+          'AuthUaePass: Resuming interrupted flow via handleResumption...',
+        );
         if (!context.mounted) {
           return const UaePassAuthResult(status: UaePassFlowStatus.cancelled);
         }
@@ -335,7 +338,7 @@ class AuthUaePass {
     }
     final String initialUrl = parsed.toString();
     debugPrint('AuthUaePass: authenticate starting with URL: $initialUrl');
-    
+
     // Ensure a clean slate by clearing cookies before starting a new flow.
     // This prevents stale session state from interfering with the new request.
     try {
@@ -431,7 +434,8 @@ class AuthUaePass {
     required String redirectUri,
   }) async {
     debugPrint('AuthUaePass: Starting silent logout...');
-    final Completer<UaePassAuthResult> completer = Completer<UaePassAuthResult>();
+    final Completer<UaePassAuthResult> completer =
+        Completer<UaePassAuthResult>();
     HeadlessInAppWebView? headless;
 
     headless = HeadlessInAppWebView(
@@ -445,14 +449,15 @@ class AuthUaePass {
       onLoadStart: (controller, url) {
         if (url == null) return;
         debugPrint('AuthUaePass: Silent logout loading $url');
-        
+
         final UaePassAuthResult? result = UaePassCallbackParser.parse(
           callbackUri: Uri.parse(url.toString()),
           redirectUri: Uri.parse(redirectUri),
           cancelledUriPatterns: const <String>[],
           isLogoutFlow: true,
         );
-        if (result != null && result.status == UaePassFlowStatus.logoutSuccess) {
+        if (result != null &&
+            result.status == UaePassFlowStatus.logoutSuccess) {
           debugPrint('AuthUaePass: Silent logout complete');
           if (!completer.isCompleted) {
             completer.complete(result);
@@ -469,7 +474,8 @@ class AuthUaePass {
           cancelledUriPatterns: const <String>[],
           isLogoutFlow: true,
         );
-        if (result != null && result.status == UaePassFlowStatus.logoutSuccess) {
+        if (result != null &&
+            result.status == UaePassFlowStatus.logoutSuccess) {
           debugPrint('AuthUaePass: Silent logout complete via override');
           if (!completer.isCompleted) {
             completer.complete(result);
@@ -487,7 +493,9 @@ class AuthUaePass {
         const Duration(seconds: 20),
         onTimeout: () {
           debugPrint('AuthUaePass: Silent logout timed out');
-          return const UaePassAuthResult(status: UaePassFlowStatus.logoutSuccess);
+          return const UaePassAuthResult(
+            status: UaePassFlowStatus.logoutSuccess,
+          );
         },
       );
       return result;
