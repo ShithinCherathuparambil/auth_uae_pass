@@ -8,8 +8,6 @@ import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
-import 'uae_pass_endpoints.dart';
-import 'uae_pass_mobile_api.dart';
 
 class AuthUaePass {
   const AuthUaePass({

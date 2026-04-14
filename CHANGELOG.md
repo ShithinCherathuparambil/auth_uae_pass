@@ -1,3 +1,8 @@
+## 0.0.2
+
+* **Analysis Fixes**: Removed unnecessary imports and resolved static analysis warnings.
+- **Pubspec Improvements**: Updated package description and URLs for better compliance with pub.dev.
+
 ## 0.0.1
 
 * **Initial Release**: Complete UAE PASS authentication flow for Flutter.
