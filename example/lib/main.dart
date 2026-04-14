@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:app_links/app_links.dart';
 import 'package:auth_uae_pass/auth_uae_pass.dart';
 import 'package:flutter/material.dart';
 
@@ -52,109 +51,43 @@ class _HighlightHomePageState extends State<HighlightHomePage> {
   final AuthUaePass _auth = const AuthUaePass();
   String _lastResult = 'Configure locale, then tap Sign in.';
   bool _arabicUi = false;
-  bool _isResuming = false;
-
-  late final AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSubscription;
 
   UaePassAuthRequest get _defaultRequest => UaePassAuthRequest(
-        authorizationUrl: _authorizationUrl(),
-        redirectUri: _kRedirectUri,
-        deepLinkScheme: _kUrlScheme,
-        cancelledUriPatterns: const <String>['cancel'],
-        environment: _env,
-      );
+    authorizationUrl: _authorizationUrl(),
+    redirectUri: _kRedirectUri,
+    deepLinkScheme: _kUrlScheme,
+    cancelledUriPatterns: const <String>['cancel'],
+    environment: _env,
+  );
 
   UaePassEnvironment get _env => _kIsProduction
       ? UaePassEnvironment.production
       : UaePassEnvironment.staging;
 
+  String _authorizationUrl() {
+    return _auth.authorizationUrl(
+      env: _env,
+      clientId: _kClientId,
+      redirectUri: _kRedirectUri,
+      uiLocales: _arabicUi ? 'ar' : 'en',
+    );
+  }
+
   @override
   void initState() {
     super.initState();
-    _initDeepLinks();
+    _linkSubscription = _auth.listenToDeepLinks(
+      context: context,
+      defaultRequest: _defaultRequest,
+      onResult: _processResult,
+    );
   }
 
   @override
   void dispose() {
     _linkSubscription?.cancel();
     super.dispose();
-  }
-
-  Future<void> _initDeepLinks() async {
-    _appLinks = AppLinks();
-    
-    // 1. Handle links while the app is running
-    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
-      debugPrint('Example: Received deep link (stream): $uri');
-      AuthUaePass.onDeepLinkReceived(uri);
-      _checkAndHandleGlobalResumption(uri);
-    });
-    
-    // 2. Handle the link that launched the app (cold start)
-    try {
-      final Uri? initialUri = await _appLinks.getInitialLink();
-      if (initialUri != null) {
-        debugPrint('Example: Received initial link: $initialUri');
-        AuthUaePass.onDeepLinkReceived(initialUri);
-        _checkAndHandleGlobalResumption(initialUri);
-      }
-    } catch (e) {
-      debugPrint('Example: Error getting initial link: $e');
-    }
-  }
-
-  void _checkAndHandleGlobalResumption(Uri uri) {
-    if (_isResuming) return;
-    
-    // Check if this is a UAE PASS resumption pattern
-    final bool isResumption = uri.scheme == _kUrlScheme && 
-                             uri.path.contains('resume_authn');
-                             
-    if (isResumption) {
-      debugPrint('Example: Detected global resumption link, launching recovery flow...');
-      _handleResumption(uri);
-    }
-  }
-
-  Future<void> _handleResumption(Uri uri) async {
-    setState(() => _isResuming = true);
-    try {
-      final result = await _auth.authenticateWithResumption(
-        context,
-        deepLink: uri,
-        originalRequest: _defaultRequest,
-      );
-      _processResult(result);
-    } finally {
-      if (mounted) setState(() => _isResuming = false);
-    }
-  }
-
-  /// Authorize URL (acr_values applied by package when [environment] is set).
-  String _authorizationUrl() {
-    final Uri base = Uri.parse(UaePassIdHubEndpoints.authorizeUrl(_env));
-    final Map<String, String> q = Map<String, String>.from(
-      base.queryParameters,
-    );
-    q['response_type'] = 'code';
-    q['client_id'] = _kClientId;
-    q['redirect_uri'] = _kRedirectUri;
-    q['scope'] = 'urn:uae:digitalid:profile:general';
-    q['state'] = 'example-${DateTime.now().millisecondsSinceEpoch}';
-    q['ui_locales'] = _arabicUi ? 'ar' : 'en';
-    return base.replace(queryParameters: q).toString();
-  }
-
-  String _logoutUrl() {
-    final String hub = _kIsProduction
-        ? 'https://id.uaepass.ae/idshub/logout'
-        : 'https://stg-id.uaepass.ae/idshub/logout';
-    return Uri.parse(hub)
-        .replace(
-          queryParameters: <String, String>{'redirect_uri': _kRedirectUri},
-        )
-        .toString();
   }
 
   @override
@@ -206,7 +139,7 @@ class _HighlightHomePageState extends State<HighlightHomePage> {
   Future<void> _startAuth() async {
     final String authUrl = _authorizationUrl();
     debugPrint('Example: Starting auth with final URL: $authUrl');
-    
+
     final UaePassAuthResult result = await _auth.authenticate(
       context,
       request: _defaultRequest,
@@ -269,7 +202,7 @@ class _HighlightHomePageState extends State<HighlightHomePage> {
     final String message = switch (result.status) {
       UaePassFlowStatus.sop1 ||
       UaePassFlowStatus.sop2 ||
-      UaePassFlowStatus.sop3 => 'Auth success: ${result.status.name}',
+      UaePassFlowStatus.sop3 => 'Auth success: ${result.status}',
       UaePassFlowStatus.cancelled => 'Auth cancelled by user',
       UaePassFlowStatus.error =>
         'Auth failed: ${result.errorCode ?? '-'} (${result.errorDescription ?? '-'})',
@@ -282,10 +215,8 @@ class _HighlightHomePageState extends State<HighlightHomePage> {
   Future<void> _startLogout() async {
     final UaePassAuthResult result = await _auth.logout(
       context,
-      request: UaePassLogoutRequest(
-        logoutUrl: _logoutUrl(),
-        redirectUri: _kRedirectUri,
-      ),
+      env: _env,
+      redirectUri: _kRedirectUri,
     );
     if (!mounted) return;
     setState(() {

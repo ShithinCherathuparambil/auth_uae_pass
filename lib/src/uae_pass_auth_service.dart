@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:app_links/app_links.dart';
+import 'package:auth_uae_pass/auth_uae_pass.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
+import 'uae_pass_endpoints.dart';
 import 'uae_pass_mobile_api.dart';
 import 'uae_pass_models.dart';
 
@@ -20,6 +23,10 @@ class AuthUaePass {
   static final StreamController<Uri> _deepLinkStream =
       StreamController<Uri>.broadcast();
 
+  /// Internal flag to prevent [listenToDeepLinks] from triggering a new flow
+  /// if a UAE PASS WebView is already active.
+  static bool _isFlowInProgress = false;
+
   /// Call this from your app's deep link listener (e.g. app_links or uni_links)
   /// when a URL with your custom scheme is received.
   ///
@@ -33,6 +40,89 @@ class AuthUaePass {
   static void onDeepLinkReceived(Uri uri) {
     debugPrint('AuthUaePass: Global deep link received: $uri');
     _deepLinkStream.add(uri);
+  }
+
+  /// Listens for deep links and handles UAE PASS resumption automatically.
+  /// Call this in your [initState] to enable global resumption handling.
+  ///
+  /// [autoResumeOnColdStart] (default: false) controls whether the app
+  /// automatically pushes a resumption WebView if it was launched via a
+  /// deep link (cold start). Set to true only if you want to aggressively
+  /// recover sessions, but be aware that some Android devices re-deliver
+  /// old intents, which can lead to stale sessions.
+  ///
+  /// returns a [StreamSubscription] that you should cancel in [dispose].
+  StreamSubscription<Uri> listenToDeepLinks({
+    required BuildContext context,
+    required UaePassAuthRequest defaultRequest,
+    required void Function(UaePassAuthResult) onResult,
+    bool autoResumeOnColdStart = false,
+  }) {
+    final AppLinks appLinks = AppLinks();
+
+    // Handle cold start
+    appLinks.getInitialLink().then((uri) {
+      if (uri != null) {
+        onDeepLinkReceived(uri);
+        if (!_isFlowInProgress) {
+          if (autoResumeOnColdStart) {
+            _handleGlobalResumption(
+              context: context,
+              uri: uri,
+              request: defaultRequest,
+              onResult: onResult,
+            );
+          } else {
+            debugPrint(
+              'AuthUaePass: Cold start link received but auto-resumption is disabled by default.',
+            );
+          }
+        }
+      }
+    });
+
+    // Handle runtime links
+    return appLinks.uriLinkStream.listen((uri) {
+      onDeepLinkReceived(uri);
+      if (_isFlowInProgress) {
+        debugPrint(
+          'AuthUaePass: Global resumption ignored because a flow is already in progress.',
+        );
+        return;
+      }
+      _handleGlobalResumption(
+        context: context,
+        uri: uri,
+        request: defaultRequest,
+        onResult: onResult,
+      );
+    });
+  }
+
+  void _handleGlobalResumption({
+    required BuildContext context,
+    required Uri uri,
+    required UaePassAuthRequest request,
+    required void Function(UaePassAuthResult) onResult,
+  }) {
+    // We reuse the utility from uae_pass_mobile_api.dart for consistency
+    final bool isResumption = isSpResumeAuthnCallback(
+      uri: uri,
+      spRedirectUri: Uri.parse(request.redirectUri),
+      deepLinkScheme: request.deepLinkScheme,
+      resumeAuthnPath: request.resumeAuthnPath,
+    );
+
+    if (isResumption) {
+      debugPrint(
+        'AuthUaePass: Detected resumption link, launching recovery flow...',
+      );
+      authenticateWithResumption(
+        context,
+        deepLink: uri,
+        originalRequest: request,
+      ).then(onResult);
+    }
   }
 
   Future<String?> signIn(
@@ -206,7 +296,8 @@ class AuthUaePass {
       return const UaePassAuthResult(status: UaePassFlowStatus.cancelled);
     }
 
-    final String uaePassScheme = (request.environment == UaePassEnvironment.staging)
+    final String uaePassScheme =
+        (request.environment == UaePassEnvironment.staging)
         ? 'uaepassstg'
         : 'uaepass';
 
@@ -247,9 +338,12 @@ class AuthUaePass {
       return const UaePassAuthResult(status: UaePassFlowStatus.error);
     }
 
-    debugPrint('AuthUaePass: Resuming authentication via global entry: $nested');
+    debugPrint(
+      'AuthUaePass: Resuming authentication via global entry: $nested',
+    );
 
-    final String uaePassScheme = (originalRequest.environment == UaePassEnvironment.staging)
+    final String uaePassScheme =
+        (originalRequest.environment == UaePassEnvironment.staging)
         ? 'uaepassstg'
         : 'uaepass';
 
@@ -266,7 +360,8 @@ class AuthUaePass {
           resumeAuthnPath: originalRequest.resumeAuthnPath,
           deepLinkScheme: originalRequest.deepLinkScheme,
           uaePassScheme: uaePassScheme,
-          enableMobileDeepLinkRewrite: originalRequest.enableMobileDeepLinkRewrite,
+          enableMobileDeepLinkRewrite:
+              originalRequest.enableMobileDeepLinkRewrite,
         ),
         fullscreenDialog: true,
       ),
@@ -278,17 +373,19 @@ class AuthUaePass {
 
   Future<UaePassAuthResult> logout(
     BuildContext context, {
-    required UaePassLogoutRequest request,
+
+    required UaePassEnvironment env,
+    required String redirectUri,
   }) async {
     final result = await Navigator.of(context).push<UaePassAuthResult>(
       MaterialPageRoute<UaePassAuthResult>(
         builder: (_) => _UaePassWebViewPage(
-          initialUrl: request.logoutUrl,
-          redirectUri: request.redirectUri,
+          initialUrl: logoutUrl(env: env, redirectUri: redirectUri),
+          redirectUri: redirectUri,
           cancelledUriPatterns: const <String>[],
           externalAppSchemes: const <String>[],
-          headers: request.headers,
-          userAgent: request.userAgent,
+          headers: {},
+          userAgent: null,
           isLogoutFlow: true,
           resumeAuthnPath: 'resume_authn',
           deepLinkScheme: null,
@@ -300,6 +397,38 @@ class AuthUaePass {
     );
 
     return result ?? const UaePassAuthResult(status: UaePassFlowStatus.error);
+  }
+
+  /// Authorize URL (acr_values applied by package when [environment] is set).
+  String authorizationUrl({
+    required UaePassEnvironment env,
+    required String clientId,
+    required String redirectUri,
+    required String uiLocales,
+  }) {
+    final Uri base = Uri.parse(UaePassIdHubEndpoints.authorizeUrl(env));
+    final Map<String, String> q = Map<String, String>.from(
+      base.queryParameters,
+    );
+    q['response_type'] = 'code';
+    q['client_id'] = clientId;
+    q['redirect_uri'] = redirectUri;
+    q['scope'] = 'urn:uae:digitalid:profile:general';
+    q['state'] = '${DateTime.now().millisecondsSinceEpoch}';
+    q['ui_locales'] = uiLocales;
+    return base.replace(queryParameters: q).toString();
+  }
+
+  static String logoutUrl({
+    required UaePassEnvironment env,
+    required String redirectUri,
+  }) {
+    final String hub = env == UaePassEnvironment.production
+        ? 'https://id.uaepass.ae/idshub/logout'
+        : 'https://stg-id.uaepass.ae/idshub/logout';
+    return Uri.parse(hub)
+        .replace(queryParameters: <String, String>{'redirect_uri': redirectUri})
+        .toString();
   }
 }
 
@@ -343,11 +472,13 @@ class _UaePassWebViewPageState extends State<_UaePassWebViewPage> {
   @override
   void initState() {
     super.initState();
+    AuthUaePass._isFlowInProgress = true;
     _setupDeepLinkListener();
   }
 
   @override
   void dispose() {
+    AuthUaePass._isFlowInProgress = false;
     _deepLinkSubscription?.cancel();
     super.dispose();
   }
@@ -355,7 +486,9 @@ class _UaePassWebViewPageState extends State<_UaePassWebViewPage> {
   void _setupDeepLinkListener() {
     if (!widget.enableMobileDeepLinkRewrite) return;
 
-    _deepLinkSubscription = AuthUaePass._deepLinkStream.stream.listen((uri) async {
+    _deepLinkSubscription = AuthUaePass._deepLinkStream.stream.listen((
+      uri,
+    ) async {
       debugPrint('AuthUaePass: WebView listener triggered for $uri');
       if (!mounted) {
         debugPrint('  - [IGNORE] WebView not mounted');
@@ -369,7 +502,7 @@ class _UaePassWebViewPageState extends State<_UaePassWebViewPage> {
         debugPrint('  - [IGNORE] Controller is null');
         return;
       }
- 
+
       final Uri spRedirect = Uri.parse(widget.redirectUri);
       if (isSpResumeAuthnCallback(
         uri: uri,
@@ -431,7 +564,9 @@ class _UaePassWebViewPageState extends State<_UaePassWebViewPage> {
                       )) {
                     final String? nested = nestedUrlFromResumeCallback(dartUri);
                     if (nested != null && nested.isNotEmpty) {
-                      debugPrint('AuthUaePass: SP callback received, invoking $nested');
+                      debugPrint(
+                        'AuthUaePass: SP callback received, invoking $nested',
+                      );
                       await controller.loadUrl(
                         urlRequest: URLRequest(url: WebUri(nested)),
                       );
@@ -449,12 +584,18 @@ class _UaePassWebViewPageState extends State<_UaePassWebViewPage> {
                       isUaePassNativeScheme(dartUri)) {
                     final Map<String, String> qp = dartUri.queryParameters;
                     final String? success =
-                        qp['successURL'] ?? qp['successurl'] ?? qp['successUrl'];
+                        qp['successURL'] ??
+                        qp['successurl'] ??
+                        qp['successUrl'];
                     final String? failure =
-                        qp['failureURL'] ?? qp['failureurl'] ?? qp['failureUrl'];
+                        qp['failureURL'] ??
+                        qp['failureurl'] ??
+                        qp['failureUrl'];
 
                     if (success != null && failure != null) {
-                      debugPrint('AuthUaePass: captured successURL and failureURL');
+                      debugPrint(
+                        'AuthUaePass: captured successURL and failureURL',
+                      );
 
                       final Uri rewritten = rewriteUaePassDeepLinkForSp(
                         uaePassDeepLink: dartUri,
@@ -473,7 +614,9 @@ class _UaePassWebViewPageState extends State<_UaePassWebViewPage> {
                         );
                         debugPrint('AuthUaePass: launch success = $launched');
                       } catch (e, stack) {
-                        debugPrint('AuthUaePass: Error launching rewritten deep link: $e');
+                        debugPrint(
+                          'AuthUaePass: Error launching rewritten deep link: $e',
+                        );
                         debugPrint('AuthUaePass: StackTrace: $stack');
                       }
                       return NavigationActionPolicy.CANCEL;
@@ -498,9 +641,14 @@ class _UaePassWebViewPageState extends State<_UaePassWebViewPage> {
                     (String s) => s.toLowerCase() == scheme,
                   )) {
                     try {
-                      await launchUrl(dartUri, mode: LaunchMode.externalApplication);
+                      await launchUrl(
+                        dartUri,
+                        mode: LaunchMode.externalApplication,
+                      );
                     } catch (e) {
-                      debugPrint('AuthUaePass: Error launching external URI: $e');
+                      debugPrint(
+                        'AuthUaePass: Error launching external URI: $e',
+                      );
                     }
                     return NavigationActionPolicy.CANCEL;
                   }
@@ -514,21 +662,29 @@ class _UaePassWebViewPageState extends State<_UaePassWebViewPage> {
                 },
                 onReceivedError: (controller, request, error) {
                   if (request.isForMainFrame != true) return;
-                  debugPrint('AuthUaePass: WebView Error: ${error.description}');
-                  _complete(UaePassAuthResult(
-                    status: UaePassFlowStatus.error,
-                    errorCode: 'WEBVIEW_ERROR',
-                    errorDescription: error.description,
-                  ));
+                  debugPrint(
+                    'AuthUaePass: WebView Error: ${error.description}',
+                  );
+                  _complete(
+                    UaePassAuthResult(
+                      status: UaePassFlowStatus.error,
+                      errorCode: 'WEBVIEW_ERROR',
+                      errorDescription: error.description,
+                    ),
+                  );
                 },
                 onReceivedHttpError: (controller, request, errorResponse) {
                   if (request.isForMainFrame != true) return;
-                  debugPrint('AuthUaePass: HTTP Error: ${errorResponse.statusCode}');
-                  _complete(UaePassAuthResult(
-                    status: UaePassFlowStatus.error,
-                    errorCode: 'HTTP_ERROR_${errorResponse.statusCode}',
-                    errorDescription: 'Status: ${errorResponse.statusCode}',
-                  ));
+                  debugPrint(
+                    'AuthUaePass: HTTP Error: ${errorResponse.statusCode}',
+                  );
+                  _complete(
+                    UaePassAuthResult(
+                      status: UaePassFlowStatus.error,
+                      errorCode: 'HTTP_ERROR_${errorResponse.statusCode}',
+                      errorDescription: 'Status: ${errorResponse.statusCode}',
+                    ),
+                  );
                 },
               ),
             ),
