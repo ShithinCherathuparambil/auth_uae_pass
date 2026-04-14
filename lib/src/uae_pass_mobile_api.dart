@@ -101,7 +101,7 @@ Future<bool> isUaePassAppInstalled(UaePassEnvironment environment) async {
     }
   }
 
-  debugPrint('AuthUaePass: No app detected after all probes.');
+  debugPrint('AuthUaePass: [RESULT] No app detected after all probes.');
   return false;
 }
 

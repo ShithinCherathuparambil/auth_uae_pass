@@ -13,26 +13,47 @@ import 'uae_pass_mobile_api.dart';
 import 'uae_pass_models.dart';
 
 class AuthUaePass {
-  const AuthUaePass({http.Client? httpClient}) : _httpClient = httpClient;
+  const AuthUaePass({
+    http.Client? httpClient,
+    AppLinks? appLinks,
+  })  : _httpClient = httpClient,
+        _appLinks = appLinks;
 
   final http.Client? _httpClient;
+  final AppLinks? _appLinks;
 
   http.Client get _client => _httpClient ?? http.Client();
-
-  static bool _isFlowInProgress = false;
+  AppLinks get _links => _appLinks ?? AppLinks();
 
   /// Internal stream for native deep link returns.
   static final StreamController<Uri> _deepLinkStream =
       StreamController<Uri>.broadcast();
 
+  static bool _isFlowInProgress = false;
+
   /// Internal Buffer for deep links received while no flow is active.
   static Uri? _lastCapturedLink;
+  static bool _initialLinkHandled = false;
   static StreamSubscription<Uri>? _internalSubscription;
 
+  /// Returns the global deep link stream.
+  @visibleForTesting
+  static Stream<Uri> listenToDeepLinkStream() => _deepLinkStream.stream;
+
+  /// For testing purposes only. Resets the internal static state.
+  @visibleForTesting
+  static void reset() {
+    _lastCapturedLink = null;
+    _isFlowInProgress = false;
+    _internalSubscription?.cancel();
+    _internalSubscription = null;
+    _initialLinkHandled = false;
+  }
+
   /// Ensures the global deep link listener is active.
-  static void _ensureInitialized() {
+  static void _ensureInitialized([AppLinks? links]) {
     if (_internalSubscription != null) return;
-    final AppLinks appLinks = AppLinks();
+    final AppLinks appLinks = links ?? AppLinks();
     _internalSubscription = appLinks.uriLinkStream.listen((uri) {
       onDeepLinkReceived(uri);
     });
@@ -44,6 +65,14 @@ class AuthUaePass {
     debugPrint('AuthUaePass: Captured link: $uri');
     _lastCapturedLink = uri;
     _deepLinkStream.add(uri);
+  }
+
+  /// Clears any buffered deep links.
+  static void clearCapturedLink() {
+    if (_lastCapturedLink != null) {
+      debugPrint('AuthUaePass: Clearing captured link buffer');
+      _lastCapturedLink = null;
+    }
   }
 
   @Deprecated('Setup is now handled internally. You can remove this from initState.')
@@ -115,10 +144,13 @@ class AuthUaePass {
     required UaePassAccessTokenRequest request,
   }) async {
     debugPrint('AuthUaePass: getAccessToken request...');
+    final String basicAuth =
+        'Basic ${base64Encode(utf8.encode('${request.clientId}:${request.clientSecret}'))}';
     try {
       final response = await _client.post(
         Uri.parse(request.tokenUrl),
         headers: <String, String>{
+          'Authorization': basicAuth,
           'Content-Type': 'application/x-www-form-urlencoded',
           ...request.headers,
         },
@@ -253,10 +285,16 @@ class AuthUaePass {
     } 
     
     // 2. Check if there was an initial link (Cold Start)
-    if (pendingUri == null) {
+    if (pendingUri == null && !_initialLinkHandled) {
+      _initialLinkHandled = true;
       try {
-        pendingUri = await AppLinks().getInitialLink();
-      } catch (_) {}
+        pendingUri = await _links.getInitialLink();
+        if (pendingUri != null) {
+          debugPrint('AuthUaePass: Found initial link for cold start: $pendingUri');
+        }
+      } catch (e) {
+        debugPrint('AuthUaePass: Error getting initial link: $e');
+      }
     }
 
     // 3. If a pending link exists and matches the resumption criteria, use it!
@@ -291,6 +329,16 @@ class AuthUaePass {
     }
     final String initialUrl = parsed.toString();
     debugPrint('AuthUaePass: authenticate starting with URL: $initialUrl');
+    
+    // Ensure a clean slate by clearing cookies before starting a new flow.
+    // This prevents stale session state from interfering with the new request.
+    try {
+      final CookieManager cookieManager = CookieManager.instance();
+      await cookieManager.deleteAllCookies();
+      debugPrint('AuthUaePass: WebView cookies cleared');
+    } catch (e) {
+      debugPrint('AuthUaePass: Warning clearing cookies: $e');
+    }
 
     if (!context.mounted) {
       return const UaePassAuthResult(status: UaePassFlowStatus.cancelled);
@@ -513,6 +561,8 @@ class _UaePassWebViewPageState extends State<_UaePassWebViewPage> {
         final String? nested = nestedUrlFromResumeCallback(uri);
         if (nested != null && nested.isNotEmpty) {
           debugPrint('AuthUaePass: [PROCESS] Resuming flow: $nested');
+          // Clear the global buffer as we are consuming it now
+          AuthUaePass.clearCapturedLink();
           await _controller!.loadUrl(
             urlRequest: URLRequest(url: WebUri(nested)),
           );
@@ -538,6 +588,8 @@ class _UaePassWebViewPageState extends State<_UaePassWebViewPage> {
                   supportZoom: false,
                   builtInZoomControls: false,
                   displayZoomControls: false,
+                  clearCache: true,
+                  cacheMode: CacheMode.LOAD_NO_CACHE,
                 ),
                 initialUrlRequest: URLRequest(
                   url: WebUri(widget.initialUrl),
@@ -567,6 +619,8 @@ class _UaePassWebViewPageState extends State<_UaePassWebViewPage> {
                       debugPrint(
                         'AuthUaePass: SP callback received, invoking $nested',
                       );
+                      // Clear the global buffer as we are consuming it now
+                      AuthUaePass.clearCapturedLink();
                       await controller.loadUrl(
                         urlRequest: URLRequest(url: WebUri(nested)),
                       );

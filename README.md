@@ -1,13 +1,14 @@
 # auth_uae_pass
 
-Flutter package for UAE PASS authentication using `InAppWebView`, with:
+Flutter package for UAE PASS authentication using `InAppWebView`. It provides a seamless mobile-on-device experience using deep links and handles fallback scenarios intelligently.
 
-- Full-screen auth webview flow
-- SOP status code handling (`SOP1`, `SOP2`, `SOP3`)
-- Error code handling when auth fails
-- Explicit user-cancelled status
-- Logout flow
-- UAE PASS login button widget (English/Arabic defaults + customization)
+## Features
+
+- **Invisible Lazy Resumption**: Zero setup in `initState`. The package automatically detects and resumes interrupted flows when you call `authenticate()`.
+- **Full-screen Auth Flow**: Embedded WebView for consistent UX.
+- **SOP Handling**: Support for all SOP status codes (`SOP1`, `SOP2`, `SOP3`).
+- **Logout Flow**: Easy integration with the UAE PASS logout service.
+- **Login Button**: Premium UAE PASS themed widget with English and Arabic support.
 
 ## Installation
 
@@ -17,267 +18,152 @@ dependencies:
     path: ../auth_uae_pass
 ```
 
-## Mobile App Deep Link Setup (Required)
+---
 
-Add the following in your host app to allow detection/opening of UAE PASS apps.
+## 🛠️ Configuration
+
+To handle deep link resumption correctly (especially for cold starts), you must configure your native platforms.
 
 ### Android (`AndroidManifest.xml`)
 
-Under the `<queries>` section:
+1. **Set Launch Mode**: Set `android:launchMode="singleTask"` for your `MainActivity` to ensure deep links are delivered to the existing instance.
+2. **Add Intent Filter**: Add an intent filter for your redirect scheme.
 
 ```xml
+<activity
+    android:name=".MainActivity"
+    android:launchMode="singleTask"
+    ... >
+    
+    <!-- UAE PASS Callback Listener -->
+    <intent-filter>
+        <action android:name="android.intent.action.VIEW" />
+        <category android:name="android.intent.category.DEFAULT" />
+        <category android:name="android.intent.category.BROWSABLE" />
+        <!-- Your custom scheme and optional path -->
+        <data android:scheme="your.app.scheme" android:pathPrefix="/resume_authn" />
+    </intent-filter>
+</activity>
+
+<!-- Package Visibility for app detection -->
 <queries>
-  <!-- UAE Pass app packages for deep linking -->
-  <package android:name="ae.uaepass.mainapp" />
-  <package android:name="ae.uaepass.mainapp.qa" />
-  <package android:name="ae.uaepass.mainapp.stg" />
+    <package android:name="ae.uaepass.mainapp" />
+    <package android:name="ae.uaepass.mainapp.qa" />
+    <package android:name="ae.uaepass.mainapp.stg" />
 </queries>
 ```
 
 ### iOS (`Info.plist`)
 
+1. **Query Schemes**: Allow the app to check if UAE PASS is installed.
+2. **URL Types**: Register your custom URL scheme.
+
 ```xml
 <key>LSApplicationQueriesSchemes</key>
 <array>
-  <string>mailto</string>
-  <string>tel</string>
-  <string>uaepass</string>
-  <string>uaepassqa</string>
-  <string>uaepassdev</string>
-  <string>uaepassstg</string>
+    <string>uaepass</string>
+    <string>uaepassqa</string>
+    <string>uaepassstg</string>
+</array>
+
+<key>CFBundleURLTypes</key>
+<array>
+    <dict>
+        <key>CFBundleURLSchemes</key>
+        <array>
+            <string>your.app.scheme</string>
+        </array>
+        <key>CFBundleURLName</key>
+        <string>uaepass_callback</string>
+    </dict>
 </array>
 ```
 
-`UaePassAuthRequest` defaults already include these external schemes:
-`uaepass`, `uaepassqa`, `uaepassdev`, `uaepassstg`.
+### Web
 
-## UAE PASS mobile API (official)
+No special configuration is required for Web. Ensure your `redirectUri` is a valid web URL registered in your UAE PASS Service Provider dashboard.
 
-This package follows the [mobile application authentication API](https://docs.uaepass.ae/feature-guides/authentication/mobile-application/guide/api):
+---
 
-- **App installed:** uses `acr_values=urn:digitalid:authentication:flow:mobileondevice` (when you pass `environment` and `applyMobileAcrValues: true`).
-- **App not installed:** uses `acr_values=urn:safelayer:tws:policies:authentication:level:low` (identifier + login in embedded webview; user confirms on another device via push; authorization `code` returns in the webview — same as web integration for token/userinfo).
-- **Webview:** monitors `uaepass` / `uaepassstg` (and other env) schemes, rewrites `successURL` / `failureURL` to your SP resume URL (`yourapp:///resume_authn?url=...` by default), loads the rewritten link **in the same webview**, then opens the UAE PASS app when the hub returns the deep link.
-- **Resume:** when the app calls back with `yourapp:///resume_authn?url=<stored>`, the webview loads that URL so you receive the authorization `code` on your registered `redirect_uri`.
+## 🚀 Usage
 
-Pass `environment: UaePassEnvironment.staging` or `.production` so the package can probe `uaepassstg://` vs `uaepass://` and set the correct `acr_values`. Ensure your `redirectUri` matches the scheme you registered with UAE PASS.
+The package is designed to be "invisible" until needed. You do **not** need to initialize listeners in `initState`.
 
-### Visitor integration (first authentication)
-
-For **visitor** integration, the first authentication call should request **unifiedId** and **profileType** via `scope`. Use `visitorIntegrationFirstAuth: true` on `UaePassAuthRequest` (sets `scope` to `kUaePassVisitorFirstAuthScope`), or build the authorize URL yourself with:
-
-`urn:uae:digitalid:profile:general urn:uae:digitalid:profile:general:profileType urn:uae:digitalid:profile:general:unifiedId`
-
-Then call `getAccessToken` and `getUserProfile` as in web integration.
-
-```dart
-UaePassAuthRequest(
-  authorizationUrl: 'https://stg-id.uaepass.ae/idshub/authorize?...',
-  redirectUri: 'myapp://callback',
-  environment: UaePassEnvironment.staging,
-  visitorIntegrationFirstAuth: true,
-)
-```
-
-## Idhub endpoints (STG / PROD)
-
-OAuth2 integration uses the standard idhub paths. Official reference:
-
-| Environment | User Info | Introspect |
-|-------------|-----------|------------|
-| **Staging** | `https://stg-id.uaepass.ae/idshub/userinfo` | `https://stg-id.uaepass.ae/idshub/introspect` |
-| **Production** | `https://id.uaepass.ae/idshub/userinfo` | `https://id.uaepass.ae/idshub/introspect` |
-
-Use **`UaePassIdHubEndpoints`** for these URLs (and for `/authorize` + `/token` used in the authorization code flow). Introspect is for token introspection (RFC 7662); exchanging an authorization `code` for tokens uses **`/token`**, not `/introspect`.
-
-```dart
-UaePassIdHubEndpoints.tokenUrl(UaePassEnvironment.staging);
-UaePassIdHubEndpoints.userInfoUrl(UaePassEnvironment.staging);
-UaePassIdHubEndpoints.introspectUrl(UaePassEnvironment.production);
-```
-
-### Token introspection (resource server / SP)
-
-To verify a client app access token before trusting it, call **POST** `.../introspect` with **Basic** authentication (`base64(client_id:client_secret)`), `Content-Type: application/x-www-form-urlencoded; charset=UTF-8`, and form field `token=<access_token>`. Use `AuthUaePass.introspectToken` and `UaePassIntrospectRequest`:
-
-```dart
-final auth = const AuthUaePass();
-final UaePassIntrospectResult? verified = await auth.introspectToken(
-  request: UaePassIntrospectRequest(
-    introspectUrl: UaePassIdHubEndpoints.introspectUrl(UaePassEnvironment.staging),
-    clientId: 'YOUR_SP_CLIENT_ID',
-    clientSecret: 'YOUR_SP_CLIENT_SECRET',
-    token: accessTokenFromClient,
-  ),
-);
-if (verified?.active == true) {
-  // token valid; inspect verified.sub, verified.userClaims, etc.
-}
-```
-
-### Validation decisions (SP)
-
-Apply checks in order after **Verify Access Token** (introspect), then optionally **User information**:
-
-1. **Mandatory:** if `active == false`, deny access.
-2. **Mandatory** (when you bind tokens to a client): ensure `client_id` and/or `client_claims` match your SP expectations (e.g. SDG Digital Vault: `client_id` `sdg_digivault`, `client_claims.name`, etc.).
-3. **Optional (recommended):** use `sub` from introspect as the authenticated user identifier when needed.
-4. **Optional (recommended):** call **User information API** for attributes (e.g. Emirates ID) after the token is allowed.
-5. **Optional:** ensure the token’s `scope` includes the URNs your resource requires.
-
-Use `evaluateIntrospectAccess` with `UaePassTokenValidationRules`:
-
-```dart
-final decision = evaluateIntrospectAccess(
-  verified,
-  const UaePassTokenValidationRules(
-    expectedClientId: 'sdg_digivault',
-    clientClaimMatchers: <String, String>{
-      'name': 'SDG Digital Vault App',
-    },
-    requireSub: true,
-    requiredScopes: <String>['urn:uae:digitalid:profile:general'],
-  ),
-);
-if (!decision.accessAllowed) {
-  // decision.denialCode — e.g. TOKEN_INACTIVE, CLIENT_ID_MISMATCH, SCOPE_INSUFFICIENT
-}
-```
-
-### User info (authenticated user)
-
-After validating the access token (e.g. via introspect), call **GET** `.../idshub/userinfo` with **`Authorization: Bearer <access_token>`** to load the authenticated user claims (`sub`, `acr`, `mobile`, `amr`, name fields, etc.). Use `getUserProfile` with `UaePassIdHubEndpoints.userInfoUrl(env)`:
-
-```dart
-final profile = await auth.getUserProfile(
-  request: UaePassUserProfileRequest(
-    userInfoUrl: UaePassIdHubEndpoints.userInfoUrl(env),
-    accessToken: accessToken,
-  ),
-);
-// profile?.acr, profile?.amr, profile?.mobile, profile?.raw (full JSON)
-```
-
-## Usage
+### Basic Authentication
 
 ```dart
 import 'package:auth_uae_pass/auth_uae_pass.dart';
-```
 
-```dart
 final auth = const AuthUaePass();
-const UaePassEnvironment env = UaePassEnvironment.staging;
 
-final authCode = await auth.signIn(
-  context,
-  request: UaePassAuthRequest(
-    authorizationUrl: '${UaePassIdHubEndpoints.authorizeUrl(env)}?response_type=code&client_id=...',
-    redirectUri: 'myapp://callback',
-    cancelledUriPatterns: const <String>['cancel'],
-    environment: env,
-  ),
-);
-
-if (authCode != null) {
-  final token = await auth.getAccessToken(
-    request: UaePassAccessTokenRequest(
-      tokenUrl: UaePassIdHubEndpoints.tokenUrl(env),
-      clientId: 'YOUR_CLIENT_ID',
-      clientSecret: 'YOUR_CLIENT_SECRET',
-      redirectUri: 'myapp://callback',
-      code: authCode,
+// Call this when the user taps your login button
+Future<void> login() async {
+  final result = await auth.authenticate(
+    context,
+    request: UaePassAuthRequest(
+      // Helps build the URL automatically
+      environment: UaePassEnvironment.staging, 
+      authorizationUrl: '...', 
+      redirectUri: 'your.app.scheme:///resume_authn',
+      deepLinkScheme: 'your.app.scheme',
     ),
   );
 
-  final accessToken = token?.accessToken;
-  if (accessToken != null) {
-    final profile = await auth.getUserProfile(
-      request: UaePassUserProfileRequest(
-        userInfoUrl: UaePassIdHubEndpoints.userInfoUrl(env),
-        accessToken: accessToken,
-      ),
-    );
-    // profile is UaePassUserProfile
+  if (result.status == UaePassFlowStatus.success) {
+    print('Auth Code: ${result.code}');
   }
 }
 ```
 
-### Logout
+### Intelligent Resumption (Cold Start)
+If the app was killed while the user was in the UAE PASS app, simply calling `authenticate()` again (when the user taps the button after returning) will **automatically** pick up the pending deep link and complete the login instantly without opening the browser again.
+
+---
+
+## 💡 Use Cases
+
+### 1. Mobile-on-Device (Native App)
+The package detects the UAE PASS app and initiates a native handshake. The user confirms their identity in the UAE PASS app and is redirected back to your app via a deep link.
+
+### 2. App Not Installed (Web/Push Fallback)
+If the UAE PASS app is not found, the package falls back to a web-based flow. The user enters their EID/Email in the WebView and receives a push notification on their registered mobile device to confirm.
+
+### 3. Visitor Integration
+For first-time authentication (retrieving `unifiedID` and `profileType`), pass `visitorIntegrationFirstAuth: true` in the `UaePassAuthRequest`. This automatically sets the required scopes:
+`urn:uae:digitalid:profile:general urn:uae:digitalid:profile:general:profileType urn:uae:digitalid:profile:general:unifiedId`
+
+### 4. Token Introspection
+Verify an access token on your backend or dedicated resource server before trusting it.
 
 ```dart
-await auth.logout(
-  context,
-  request: const UaePassLogoutRequest(
-    logoutUrl: 'https://stg-id.uaepass.ae/idshub/logout',
-    redirectUri: 'myapp://callback',
+final verified = await auth.introspectToken(
+  request: UaePassIntrospectRequest(
+    clientId: '...',
+    clientSecret: '...',
+    token: accessToken,
+    environment: UaePassEnvironment.staging,
   ),
 );
 ```
 
-### UAE PASS Login Button
+---
+
+## 🎨 UAE PASS Login Button
 
 ```dart
 UaePassLoginButton(
-  onPressed: () {},
-)
-```
-
-Arabic sign in default:
-
-```dart
-UaePassLoginButton(
-  language: UaePassButtonLanguage.arabic,
-  onPressed: () {},
-)
-```
-
-English sign up:
-
-```dart
-UaePassLoginButton(
-  labelType: UaePassButtonLabelType.signUp,
-  onPressed: () {},
-)
-```
-
-Arabic sign up:
-
-```dart
-UaePassLoginButton(
-  language: UaePassButtonLanguage.arabic,
-  labelType: UaePassButtonLabelType.signUp,
-  onPressed: () {},
-)
-```
-
-Customized style:
-
-```dart
-UaePassLoginButton(
-  onPressed: () {},
-  customLabel: 'Sign in with UAE PASS',
+  onPressed: () => _startLogin(),
+  language: UaePassButtonLanguage.english, // or .arabic
   style: const UaePassButtonStyle(
-    fontSize: 16,
-    borderRadius: 12,
+    borderRadius: 8,
   ),
 )
 ```
 
-Built-in style variants:
+---
 
-```dart
-UaePassLoginButton(
-  onPressed: () {},
-  style: UaePassButtonStyle.white(),
-)
+## 🛠️ Common Gotchas
 
-UaePassLoginButton(
-  onPressed: () {},
-  style: UaePassButtonStyle.whiteOutline(),
-)
-
-UaePassLoginButton(
-  onPressed: () {},
-  style: UaePassButtonStyle.black(),
-)
-```
+- **Launch Mode**: Ensure Android is set to `singleTask`. Otherwise, a new instance of your app might be created upon return, losing the authentication state.
+- **Scheme Matching**: Ensure the `redirectUri` used in the request exactly matches the scheme registered in your `AndroidManifest.xml` and `Info.plist`.
+- **Environment**: Always match the `UaePassEnvironment` (staging/production) to your credentials.

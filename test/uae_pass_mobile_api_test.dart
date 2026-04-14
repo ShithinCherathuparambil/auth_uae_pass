@@ -37,7 +37,7 @@ void main() {
     expect(out.queryParameters['scope'], contains('profileType'));
   });
 
-  test('isSpResumeAuthnCallback detects resume path', () {
+  test('isSpResumeAuthnCallback detects resume path and validates scheme', () {
     final Uri sp = Uri.parse('myapp://oauth/callback');
     final Uri resume = Uri.parse(
       'myapp:///resume_authn?url=https%3A%2F%2Fstg-id.uaepass.ae%2Fcb',
@@ -47,8 +47,20 @@ void main() {
         uri: resume,
         spRedirectUri: sp,
         resumeAuthnPath: 'resume_authn',
+        deepLinkScheme: 'myapp',
       ),
       isTrue,
+    );
+
+    // Should fail if scheme mismatch
+    expect(
+      isSpResumeAuthnCallback(
+        uri: resume,
+        spRedirectUri: sp,
+        resumeAuthnPath: 'resume_authn',
+        deepLinkScheme: 'otherapp',
+      ),
+      isFalse,
     );
   });
 }
