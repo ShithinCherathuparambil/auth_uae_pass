@@ -51,8 +51,6 @@ class _HighlightHomePageState extends State<HighlightHomePage> {
   final AuthUaePass _auth = const AuthUaePass();
   String _lastResult = 'Configure locale, then tap Sign in.';
   bool _arabicUi = false;
-  StreamSubscription<Uri>? _linkSubscription;
-
   UaePassAuthRequest get _defaultRequest => UaePassAuthRequest(
     authorizationUrl: _authorizationUrl(),
     redirectUri: _kRedirectUri,
@@ -66,7 +64,7 @@ class _HighlightHomePageState extends State<HighlightHomePage> {
       : UaePassEnvironment.staging;
 
   String _authorizationUrl() {
-    return _auth.authorizationUrl(
+    return AuthUaePass.authorizationUrl(
       env: _env,
       clientId: _kClientId,
       redirectUri: _kRedirectUri,
@@ -75,25 +73,9 @@ class _HighlightHomePageState extends State<HighlightHomePage> {
   }
 
   @override
-  void initState() {
-    super.initState();
-    _linkSubscription = _auth.listenToDeepLinks(
-      context: context,
-      defaultRequest: _defaultRequest,
-      onResult: _processResult,
-    );
-  }
-
-  @override
-  void dispose() {
-    _linkSubscription?.cancel();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('UAE PASS — Highlight (STG example)')),
+      appBar: AppBar(title: const Text('UAE PASS')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: <Widget>[

@@ -19,83 +19,48 @@ class AuthUaePass {
 
   http.Client get _client => _httpClient ?? http.Client();
 
+  static bool _isFlowInProgress = false;
+
   /// Internal stream for native deep link returns.
   static final StreamController<Uri> _deepLinkStream =
       StreamController<Uri>.broadcast();
 
-  /// Internal flag to prevent [listenToDeepLinks] from triggering a new flow
-  /// if a UAE PASS WebView is already active.
-  static bool _isFlowInProgress = false;
+  /// Internal Buffer for deep links received while no flow is active.
+  static Uri? _lastCapturedLink;
+  static StreamSubscription<Uri>? _internalSubscription;
+
+  /// Ensures the global deep link listener is active.
+  static void _ensureInitialized() {
+    if (_internalSubscription != null) return;
+    final AppLinks appLinks = AppLinks();
+    _internalSubscription = appLinks.uriLinkStream.listen((uri) {
+      onDeepLinkReceived(uri);
+    });
+  }
 
   /// Call this from your app's deep link listener (e.g. app_links or uni_links)
   /// when a URL with your custom scheme is received.
-  ///
-  /// Example:
-  /// ```dart
-  /// final appLinks = AppLinks();
-  /// appLinks.uriLinkStream.listen((uri) {
-  ///   AuthUaePass.onDeepLinkReceived(uri);
-  /// });
-  /// ```
   static void onDeepLinkReceived(Uri uri) {
-    debugPrint('AuthUaePass: Global deep link received: $uri');
+    debugPrint('AuthUaePass: Captured link: $uri');
+    _lastCapturedLink = uri;
     _deepLinkStream.add(uri);
   }
 
-  /// Listens for deep links and handles UAE PASS resumption automatically.
-  /// Call this in your [initState] to enable global resumption handling.
-  ///
-  /// [autoResumeOnColdStart] (default: false) controls whether the app
-  /// automatically pushes a resumption WebView if it was launched via a
-  /// deep link (cold start). Set to true only if you want to aggressively
-  /// recover sessions, but be aware that some Android devices re-deliver
-  /// old intents, which can lead to stale sessions.
-  ///
-  /// returns a [StreamSubscription] that you should cancel in [dispose].
-  StreamSubscription<Uri> listenToDeepLinks({
+  @Deprecated('Setup is now handled internally. You can remove this from initState.')
+  StreamSubscription<Uri>? listenToDeepLinks({
     required BuildContext context,
     required UaePassAuthRequest defaultRequest,
     required void Function(UaePassAuthResult) onResult,
     bool autoResumeOnColdStart = false,
   }) {
+    _ensureInitialized();
     final AppLinks appLinks = AppLinks();
-
-    // Handle cold start
-    appLinks.getInitialLink().then((uri) {
-      if (uri != null) {
-        onDeepLinkReceived(uri);
-        if (!_isFlowInProgress) {
-          if (autoResumeOnColdStart) {
-            _handleGlobalResumption(
-              context: context,
-              uri: uri,
-              request: defaultRequest,
-              onResult: onResult,
-            );
-          } else {
-            debugPrint(
-              'AuthUaePass: Cold start link received but auto-resumption is disabled by default.',
-            );
-          }
-        }
-      }
-    });
-
-    // Handle runtime links
+    
+    // Legacy support for user's explicit onResult handling
     return appLinks.uriLinkStream.listen((uri) {
-      onDeepLinkReceived(uri);
-      if (_isFlowInProgress) {
-        debugPrint(
-          'AuthUaePass: Global resumption ignored because a flow is already in progress.',
-        );
-        return;
+      if (!_isFlowInProgress) {
+        _handleGlobalResumption(context: context, uri: uri, request: defaultRequest, onResult: onResult);
       }
-      _handleGlobalResumption(
-        context: context,
-        uri: uri,
-        request: defaultRequest,
-        onResult: onResult,
-      );
     });
   }
 
@@ -278,6 +243,41 @@ class AuthUaePass {
     BuildContext context, {
     required UaePassAuthRequest request,
   }) async {
+    _ensureInitialized();
+    Uri? pendingUri;
+    
+    // 1. Check if we have a captured runtime link
+    if (_lastCapturedLink != null) {
+      pendingUri = _lastCapturedLink;
+      _lastCapturedLink = null; // Consume
+    } 
+    
+    // 2. Check if there was an initial link (Cold Start)
+    if (pendingUri == null) {
+      try {
+        pendingUri = await AppLinks().getInitialLink();
+      } catch (_) {}
+    }
+
+    // 3. If a pending link exists and matches the resumption criteria, use it!
+    if (pendingUri != null) {
+      final bool isResumption = isSpResumeAuthnCallback(
+        uri: pendingUri,
+        spRedirectUri: Uri.parse(request.redirectUri),
+        deepLinkScheme: request.deepLinkScheme,
+        resumeAuthnPath: request.resumeAuthnPath,
+      );
+      
+      if (isResumption) {
+        debugPrint('AuthUaePass: Resuming interrupted flow via handleResumption...');
+        return authenticateWithResumption(
+          context,
+          deepLink: pendingUri,
+          originalRequest: request,
+        );
+      }
+    }
+
     Uri parsed = Uri.parse(request.authorizationUrl);
     if (request.applyMobileAcrValues) {
       final UaePassEnvironment env =
@@ -400,7 +400,7 @@ class AuthUaePass {
   }
 
   /// Authorize URL (acr_values applied by package when [environment] is set).
-  String authorizationUrl({
+  static String authorizationUrl({
     required UaePassEnvironment env,
     required String clientId,
     required String redirectUri,
