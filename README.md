@@ -2,7 +2,21 @@
 
 A production-ready Flutter package for **UAE PASS** authentication. Built for robustness, security, and developer ease-of-use. Handles native app redirects, deep link resumption, and OIDC token flows out of the box with over 120+ UI variations.
 
-![UAE PASS Button Gallery](assets/screenshots/main_gallery.png)
+<p align="center">
+  <img src="assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.11.33.png" width="32%" />
+  <img src="assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.11.42.png" width="32%" />
+  <img src="assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.11.48.png" width="32%" />
+</p>
+<p align="center">
+  <img src="assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.11.55.png" width="32%" />
+  <img src="assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.11.59.png" width="32%" />
+  <img src="assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.16.53.png" width="32%" />
+</p>
+<p align="center">
+  <img src="assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.16.57.png" width="32%" />
+  <img src="assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.17.01.png" width="32%" />
+  <img src="assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.17.07.png" width="32%" />
+</p>
 
 [![pub package](https://img.shields.io/pub/v/auth_uae_pass.svg?label=pub&color=blue)](https://pub.dev/packages/auth_uae_pass)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -107,11 +121,41 @@ void _login(BuildContext context) async {
 }
 ```
 
-### 2. Custom Login Button
+### 2. Silent Logout
+
+Background logout via `HeadlessInAppWebView`—no more blank/black screen flickers. This ensures the next login attempt starts with a clean session.
+
+```dart
+void _onLogout(BuildContext context) async {
+  await auth.logout(
+    context,
+    environment: UaePassEnvironment.staging,
+    redirectUri: 'your_app_scheme://',
+  );
+  print('Logged out from UAE PASS session');
+}
+```
+
+### 3. User Profile Data
+
+The `signInWithProfile` method returns a `UaePassProfile` object containing comprehensive user details.
+
+| Field | Description |
+| :--- | :--- |
+| `uuid` | Unique user identifier |
+| `fullNameEN / fullNameAR` | User's full name in English/Arabic |
+| `email` | User's verified email address (if available) |
+| `mobile` | User's verified mobile number |
+| `nationalityEN / nationalityAR`| User's nationality |
+| `gender` | User's gender |
+| `idn` | Emirates ID Number |
+| `unifiedId` | Unified ID (available with Visitor Integration) |
+
+### 4. Custom Login Button
 
 The package includes a highly customizable login button that adheres to official branding.
 
-![Arabic Label Variations](assets/screenshots/label_variations_ar.png)
+![Arabic Label Variations](assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.17.07.png)
 
 ```dart
 UaePassLoginButton(
@@ -125,11 +169,11 @@ UaePassLoginButton(
 )
 ```
 
-### 3. Logo Only Variations
+### 5. Logo Only Variations
 
 For compact layouts or social login grids.
 
-![Logo Matrix](assets/screenshots/logo_only_gallery.png)
+![Logo Matrix](assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.11.59.png)
 
 ```dart
 UaePassLoginButton(
@@ -152,6 +196,32 @@ UaePassLoginButton(
 | **Redirect URI** | Must match the service provider portal dashboard EXACTLY |
 | **Custom Scheme** | Same as Redirect URI scheme |
 | **Environment** | Production credentials will NOT work in Staging environment |
+
+---
+
+## 💡 Advanced Scenarios
+
+### Cold Start Resumption
+If your app is terminated while the user is inside the UAE PASS native app, the deep link is saved. When the user returns and you call `signInWithProfile()` again, the package **instantly** detects the pending link and completes the login without showing a browser popup.
+
+### Visitor Integration
+To fetch `unifiedID` and `profileType`, the first authentication must use the extended visitor scope. You can enable this in the configuration:
+
+```dart
+final result = await auth.signInWithProfile(
+  context,
+  // ... other params
+  visitorIntegrationFirstAuth: true,
+);
+```
+
+### SOP Level Detection
+The package automatically identifies the "Success Of Person" level used for authentication:
+- `sop1`: Simple Password.
+- `sop2`: Biometrics (Fingerprint/FaceID).
+- `sop3`: Verified Face ID (Official Govt verification).
+
+Check this via `result.sopLevel` in the `UaePassAuthData`.
 
 ---
 

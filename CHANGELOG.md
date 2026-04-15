@@ -1,3 +1,11 @@
+## 0.0.3
+
+* **Unified API**: Introduced `signInWithProfile` for a simple, one-call authentication and profile retrieval flow.
+* **UI Overhaul**: Expanded `UaePassLoginButton` with 120+ variations across Dark, Outline, and Logo-only styles.
+* **RTL Support**: Native Arabic support with automatic layout flipping for compliant RTL design.
+* **SOP Detection**: Added automatic Success Of Person level detection (Biometrics vs Password).
+* **Documentation**: Modernized README with a comprehensive screenshot gallery and advanced usage guides.
+
 ## 0.0.2
 
 * **Analysis Fixes**: Removed unnecessary imports and resolved static analysis warnings.
