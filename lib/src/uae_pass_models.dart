@@ -5,9 +5,6 @@ import 'uae_pass_mobile_api.dart';
 const String kUaePassDocumentsNotVerifiedErrorCode = 'DOCUMENTS_NOT_VERIFIED';
 
 enum UaePassFlowStatus {
-  sop1,
-  sop2,
-  sop3,
   loginSuccess,
   cancelled,
   logoutSuccess,
@@ -15,24 +12,34 @@ enum UaePassFlowStatus {
   unknown,
 }
 
+enum UaePassSopLevel {
+  sop1,
+  sop2,
+  sop3,
+  none,
+}
+
 enum UaePassButtonLanguage { english, arabic }
-enum UaePassButtonLabelType { signIn, signUp }
+
+enum UaePassButtonLabelType { signIn, signUp, login, continueWith, sign }
 
 /// Which UAE PASS mark asset to use (light vs dark backgrounds).
 enum UaePassButtonIconAppearance {
   /// Uses [UaePassButtonStyle.backgroundColor] luminance: light buttons get the
   /// fingerprint asset for light surfaces; dark buttons get the alternate asset.
   auto,
+
   /// Official mark for **light** button backgrounds (e.g. white).
   lightBackground,
+
   /// Mark for **dark** button backgrounds (e.g. black).
   darkBackground,
+
+  /// Monochrome/Grayscale version for subtle light buttons.
+  grayscale,
 }
 
-enum UaePassErrorCode {
-  documentsNotVerified,
-  unknown,
-}
+enum UaePassErrorCode { documentsNotVerified, unknown }
 
 UaePassErrorCode? parseUaePassErrorCode(String? errorCode) {
   if (errorCode == null || errorCode.trim().isEmpty) {
@@ -61,16 +68,20 @@ class UaePassAuthRequest {
     this.headers = const <String, String>{},
     this.userAgent,
     this.deepLinkScheme,
+
     /// When set with [applyMobileAcrValues], the package picks
     /// `acr_values=urn:digitalid:authentication:flow:mobileondevice` vs
     /// `urn:safelayer:tws:policies:authentication:level:low` using
     /// [isUaePassAppInstalled] (see UAE PASS mobile API).
     this.environment,
     this.applyMobileAcrValues = true,
+
     /// Path segment for `yourapp:///resume_authn?url=` (default matches docs).
     this.resumeAuthnPath = 'resume_authn',
+
     /// Rewrite `uaepass*://...?successURL=&failureURL=` and handle resume in webview.
     this.enableMobileDeepLinkRewrite = true,
+
     /// Visitor integration: first auth uses extended `scope` for unifiedId / profileType.
     this.visitorIntegrationFirstAuth = false,
   });
@@ -110,6 +121,7 @@ class UaePassAuthResult {
     this.errorCode,
     this.errorDescription,
     this.callbackUri,
+    this.sopLevel = UaePassSopLevel.none,
   });
 
   final UaePassFlowStatus status;
@@ -117,13 +129,34 @@ class UaePassAuthResult {
   final String? errorCode;
   final String? errorDescription;
   final Uri? callbackUri;
+  final UaePassSopLevel sopLevel;
 
   bool get isSuccess =>
-      status == UaePassFlowStatus.sop1 ||
-      status == UaePassFlowStatus.sop2 ||
-      status == UaePassFlowStatus.sop3 ||
       status == UaePassFlowStatus.loginSuccess ||
       status == UaePassFlowStatus.logoutSuccess;
+
+  UaePassErrorCode? get typedErrorCode => parseUaePassErrorCode(errorCode);
+}
+
+/// Consolidated result of a full UAE PASS authentication flow (Status + Token + Profile).
+class UaePassAuthData {
+  const UaePassAuthData({
+    required this.status,
+    this.token,
+    this.profile,
+    this.errorCode,
+    this.errorDescription,
+    this.sopLevel = UaePassSopLevel.none,
+  });
+
+  final UaePassFlowStatus status;
+  final UaePassUserToken? token;
+  final UaePassUserProfile? profile;
+  final String? errorCode;
+  final String? errorDescription;
+  final UaePassSopLevel sopLevel;
+
+  bool get isSuccess => status == UaePassFlowStatus.loginSuccess;
 
   UaePassErrorCode? get typedErrorCode => parseUaePassErrorCode(errorCode);
 }
@@ -174,6 +207,7 @@ class UaePassIntrospectRequest {
   final String introspectUrl;
   final String clientId;
   final String clientSecret;
+
   /// Access token issued to the client app (to verify).
   final String token;
   final Map<String, String> headers;
@@ -363,8 +397,10 @@ class UaePassUserProfile {
   final String? nationalityAR;
   final String? firstnameAR;
   final String? email;
+
   /// Authentication Context Class Reference (e.g. authentication assurance level).
   final String? acr;
+
   /// Authentication methods references (AMR), as returned by userinfo.
   final List<String>? amr;
   final String? spuuid;
@@ -373,6 +409,7 @@ class UaePassUserProfile {
   final String? titleAR;
   final String? profileType;
   final String? unifiedId;
+
   /// Full JSON body from `GET /userinfo` for any additional claims.
   final Map<String, dynamic> raw;
 }
@@ -398,7 +435,8 @@ class UaePassCallbackParser {
       }
     }
 
-    if (callbackUri.scheme != redirectUri.scheme || callbackUri.host != redirectUri.host) {
+    if (callbackUri.scheme != redirectUri.scheme ||
+        callbackUri.host != redirectUri.host) {
       return null;
     }
 
@@ -414,6 +452,7 @@ class UaePassCallbackParser {
       callbackUri.queryParameters['status'],
       callbackUri.queryParameters['status_code'],
       callbackUri.queryParameters['sop'],
+      callbackUri.queryParameters['acr'],
       callbackUri.queryParameters['code'],
       callbackUri.fragment,
     ];
@@ -422,22 +461,25 @@ class UaePassCallbackParser {
 
     if (merged.contains('SOP1')) {
       return UaePassAuthResult(
-        status: UaePassFlowStatus.sop1,
+        status: UaePassFlowStatus.loginSuccess,
         statusCode: 'SOP1',
+        sopLevel: UaePassSopLevel.sop1,
         callbackUri: callbackUri,
       );
     }
     if (merged.contains('SOP2')) {
       return UaePassAuthResult(
-        status: UaePassFlowStatus.sop2,
+        status: UaePassFlowStatus.loginSuccess,
         statusCode: 'SOP2',
+        sopLevel: UaePassSopLevel.sop2,
         callbackUri: callbackUri,
       );
     }
     if (merged.contains('SOP3')) {
       return UaePassAuthResult(
-        status: UaePassFlowStatus.sop3,
+        status: UaePassFlowStatus.loginSuccess,
         statusCode: 'SOP3',
+        sopLevel: UaePassSopLevel.sop3,
         callbackUri: callbackUri,
       );
     }
@@ -453,11 +495,12 @@ class UaePassCallbackParser {
         callbackUri.queryParameters.containsKey('error_code')) {
       final rawErrorCode = callbackUri.queryParameters['error_code'];
       final rawErrorDescription =
-          callbackUri.queryParameters['error_description'] ?? callbackUri.queryParameters['error'];
+          callbackUri.queryParameters['error_description'] ??
+          callbackUri.queryParameters['error'];
       final resolvedErrorCode =
           _isDocumentsNotVerifiedError(rawErrorCode, rawErrorDescription)
-              ? kUaePassDocumentsNotVerifiedErrorCode
-              : rawErrorCode;
+          ? kUaePassDocumentsNotVerifiedErrorCode
+          : rawErrorCode;
 
       return UaePassAuthResult(
         status: UaePassFlowStatus.error,
@@ -483,8 +526,12 @@ class UaePassCallbackParser {
     );
   }
 
-  static bool _isDocumentsNotVerifiedError(String? errorCode, String? errorDescription) {
-    final combined = '${errorCode ?? ''}|${errorDescription ?? ''}'.toLowerCase();
+  static bool _isDocumentsNotVerifiedError(
+    String? errorCode,
+    String? errorDescription,
+  ) {
+    final combined = '${errorCode ?? ''}|${errorDescription ?? ''}'
+        .toLowerCase();
     return combined.contains('documents are not verified') ||
         combined.contains('document not verified') ||
         combined.contains('documents_not_verified') ||
@@ -497,13 +544,17 @@ class UaePassButtonStyle {
     this.backgroundColor = Colors.white,
     this.foregroundColor = const Color(0xFF101828),
     this.borderColor = const Color(0xFF98A2B3),
+    this.borderWidth = 1.0,
     this.borderRadius = 10,
-    this.height = 40,
+    this.height = 44,
     this.fontSize = 16,
     this.fontWeight = FontWeight.w600,
     this.iconSize = 18,
     this.padding = const EdgeInsets.symmetric(horizontal: 16),
     this.iconAppearance = UaePassButtonIconAppearance.auto,
+    this.elevation = 0,
+    this.shadowColor = Colors.transparent,
+    this.width,
   });
 
   factory UaePassButtonStyle.white() {
@@ -512,6 +563,8 @@ class UaePassButtonStyle {
       foregroundColor: Color(0xFF101828),
       borderColor: Colors.transparent,
       iconAppearance: UaePassButtonIconAppearance.lightBackground,
+      elevation: 1,
+      shadowColor: Colors.black12,
     );
   }
 
@@ -521,6 +574,7 @@ class UaePassButtonStyle {
       foregroundColor: Color(0xFF101828),
       borderColor: Color(0xFF98A2B3),
       iconAppearance: UaePassButtonIconAppearance.lightBackground,
+      elevation: 0,
     );
   }
 
@@ -529,13 +583,93 @@ class UaePassButtonStyle {
       backgroundColor: Colors.black,
       foregroundColor: Colors.white,
       borderColor: Colors.black,
+      borderWidth: 0,
       iconAppearance: UaePassButtonIconAppearance.darkBackground,
+    );
+  }
+
+  /// Create a variety of dark button styles.
+  ///
+  /// [background] is the button color.
+  /// [border] is the border color (use Transparent for none).
+  /// [radius] is the corner radius.
+  factory UaePassButtonStyle.darkVariant({
+    required Color background,
+    required Color border,
+    required double radius,
+    double elevation = 0,
+  }) {
+    return UaePassButtonStyle(
+      backgroundColor: background,
+      foregroundColor: Colors.white,
+      borderColor: border,
+      borderWidth: border == Colors.transparent ? 0 : 1,
+      borderRadius: radius,
+      iconAppearance: UaePassButtonIconAppearance.darkBackground,
+      elevation: elevation,
+      shadowColor: elevation > 0 ? Colors.black26 : Colors.transparent,
+    );
+  }
+
+  /// Create a variety of outline button styles (the "5" specific shapes).
+  factory UaePassButtonStyle.outlineVariant({
+    required Color border,
+    required double radius,
+    Color foregroundColor = const Color(0xFF101828),
+    UaePassButtonIconAppearance iconAppearance =
+        UaePassButtonIconAppearance.lightBackground,
+    double elevation = 0,
+  }) {
+    return UaePassButtonStyle(
+      backgroundColor: Colors.white,
+      foregroundColor: foregroundColor,
+      borderColor: border,
+      borderWidth: 1,
+      borderRadius: radius,
+      iconAppearance: iconAppearance,
+      elevation: elevation,
+      shadowColor: elevation > 0 ? Colors.black12 : Colors.transparent,
+    );
+  }
+
+  UaePassButtonStyle copyWith({
+    Color? backgroundColor,
+    Color? foregroundColor,
+    Color? borderColor,
+    double? borderWidth,
+    double? borderRadius,
+    double? height,
+    double? fontSize,
+    FontWeight? fontWeight,
+    double? iconSize,
+    EdgeInsetsGeometry? padding,
+    UaePassButtonIconAppearance? iconAppearance,
+    double? elevation,
+    Color? shadowColor,
+    double? width,
+  }) {
+    return UaePassButtonStyle(
+      backgroundColor: backgroundColor ?? this.backgroundColor,
+      foregroundColor: foregroundColor ?? this.foregroundColor,
+      borderColor: borderColor ?? this.borderColor,
+      borderWidth: borderWidth ?? this.borderWidth,
+      borderRadius: borderRadius ?? this.borderRadius,
+      height: height ?? this.height,
+      fontSize: fontSize ?? this.fontSize,
+      fontWeight: fontWeight ?? this.fontWeight,
+      iconSize: iconSize ?? this.iconSize,
+      padding: padding ?? this.padding,
+      iconAppearance: iconAppearance ?? this.iconAppearance,
+      elevation: elevation ?? this.elevation,
+      shadowColor: shadowColor ?? this.shadowColor,
+      width: width ?? this.width,
     );
   }
 
   final Color backgroundColor;
   final Color foregroundColor;
   final Color borderColor;
+  final double borderWidth;
   final double borderRadius;
   final double height;
   final double fontSize;
@@ -543,4 +677,7 @@ class UaePassButtonStyle {
   final double iconSize;
   final EdgeInsetsGeometry padding;
   final UaePassButtonIconAppearance iconAppearance;
+  final double elevation;
+  final Color shadowColor;
+  final double? width;
 }

@@ -13,7 +13,9 @@ void main() {
         isLogoutFlow: false,
       );
 
-      expect(result?.status, UaePassFlowStatus.sop1);
+      expect(result?.status, UaePassFlowStatus.loginSuccess);
+      expect(result?.statusCode, 'SOP1');
+      expect(result?.sopLevel, UaePassSopLevel.sop1);
     });
 
     test('parses SOP2 status', () {
@@ -24,7 +26,9 @@ void main() {
         isLogoutFlow: false,
       );
 
-      expect(result?.status, UaePassFlowStatus.sop2);
+      expect(result?.status, UaePassFlowStatus.loginSuccess);
+      expect(result?.statusCode, 'SOP2');
+      expect(result?.sopLevel, UaePassSopLevel.sop2);
     });
 
     test('parses SOP3 status', () {
@@ -35,7 +39,37 @@ void main() {
         isLogoutFlow: false,
       );
 
-      expect(result?.status, UaePassFlowStatus.sop3);
+      expect(result?.status, UaePassFlowStatus.loginSuccess);
+      expect(result?.statusCode, 'SOP3');
+      expect(result?.sopLevel, UaePassSopLevel.sop3);
+    });
+
+    test('parses SOP1 from acr parameter', () {
+      final result = UaePassCallbackParser.parse(
+        callbackUri: Uri.parse(
+          'myapp://callback?acr=urn:uae:digitalid:authentication:level:sop1',
+        ),
+        redirectUri: redirectUri,
+        cancelledUriPatterns: const <String>[],
+        isLogoutFlow: false,
+      );
+
+      expect(result?.status, UaePassFlowStatus.loginSuccess);
+      expect(result?.statusCode, 'SOP1');
+      expect(result?.sopLevel, UaePassSopLevel.sop1);
+    });
+
+    test('SOP takes priority over generic code success', () {
+      final result = UaePassCallbackParser.parse(
+        callbackUri: Uri.parse('myapp://callback?code=123&sop=SOP2'),
+        redirectUri: redirectUri,
+        cancelledUriPatterns: const <String>[],
+        isLogoutFlow: false,
+      );
+
+      expect(result?.status, UaePassFlowStatus.loginSuccess);
+      expect(result?.statusCode, 'SOP2');
+      expect(result?.sopLevel, UaePassSopLevel.sop2);
     });
 
     test('returns cancelled when cancel pattern is matched', () {
@@ -145,9 +179,9 @@ void main() {
     });
   });
 
-  test('success helper returns true for SOP status', () {
+  test('success helper returns true for loginSuccess status (SOP)', () {
     const result = UaePassAuthResult(
-      status: UaePassFlowStatus.sop2,
+      status: UaePassFlowStatus.loginSuccess,
       statusCode: 'SOP2',
     );
 
@@ -160,6 +194,13 @@ void main() {
     );
 
     expect(result.isSuccess, isTrue);
+  });
+
+  test('UaePassAuthData success helper works', () {
+    const data = UaePassAuthData(
+      status: UaePassFlowStatus.loginSuccess,
+    );
+    expect(data.isSuccess, isTrue);
   });
 
   test('parses access token model payload', () {

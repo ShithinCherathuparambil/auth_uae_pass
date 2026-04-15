@@ -142,6 +142,103 @@ class AuthUaePass {
     return code;
   }
 
+  /// A simplified high-level method to perform the full UAE PASS authentication flow.
+  ///
+  /// This method:
+  /// 1. Builds the authorization URL.
+  /// 2. Launches the WebView for user authentication.
+  /// 3. Exchanges the authorization code for an access token.
+  /// 4. Fetches the user profile data.
+  ///
+  /// Returns a [UaePassAuthData] containing the final status, token, and profile.
+  Future<UaePassAuthData> signInWithProfile(
+    BuildContext context, {
+    required String clientId,
+    required String clientSecret,
+    required String redirectUri,
+    required UaePassEnvironment environment,
+    String uiLocale = 'en',
+    List<String> cancelledUriPatterns = const <String>[],
+  }) async {
+    final String authUrl = authorizationUrl(
+      env: environment,
+      clientId: clientId,
+      redirectUri: redirectUri,
+      uiLocales: uiLocale,
+    );
+
+    final authResult = await authenticate(
+      context,
+      request: UaePassAuthRequest(
+        authorizationUrl: authUrl,
+        redirectUri: redirectUri,
+        environment: environment,
+        cancelledUriPatterns: cancelledUriPatterns,
+      ),
+    );
+
+    if (!authResult.isSuccess) {
+      return UaePassAuthData(
+        status: authResult.status,
+        errorCode: authResult.errorCode,
+        errorDescription: authResult.errorDescription,
+      );
+    }
+
+    final code = authResult.callbackUri?.queryParameters['code'];
+    if (code == null) {
+      return UaePassAuthData(
+        status: authResult.status,
+        errorCode: 'MISSING_CODE',
+        errorDescription: 'Authentication succeeded but no code was returned.',
+      );
+    }
+
+    final token = await getAccessToken(
+      request: UaePassAccessTokenRequest(
+        tokenUrl: UaePassIdHubEndpoints.tokenUrl(environment),
+        clientId: clientId,
+        clientSecret: clientSecret,
+        redirectUri: redirectUri,
+        code: code,
+      ),
+    );
+
+    if (token == null || token.accessToken == null) {
+      return UaePassAuthData(
+        status: authResult.status,
+        errorCode: 'TOKEN_EXCHANGE_FAILED',
+        errorDescription: 'Failed to exchange authorization code for token.',
+      );
+    }
+
+    final profile = await getUserProfile(
+      request: UaePassUserProfileRequest(
+        userInfoUrl: UaePassIdHubEndpoints.userInfoUrl(environment),
+        accessToken: token.accessToken!,
+      ),
+    );
+
+    UaePassSopLevel resolvedSop = authResult.sopLevel;
+    if (resolvedSop == UaePassSopLevel.none && profile?.acr != null) {
+      final String acr = profile!.acr!.toLowerCase();
+      if (acr.endsWith(':sop1')) {
+        resolvedSop = UaePassSopLevel.sop1;
+      } else if (acr.endsWith(':sop2')) {
+        resolvedSop = UaePassSopLevel.sop2;
+      } else if (acr.endsWith(':sop3')) {
+        resolvedSop = UaePassSopLevel.sop3;
+      }
+    }
+
+    return UaePassAuthData(
+      status: authResult.status,
+      token: token,
+      profile: profile,
+      sopLevel: resolvedSop,
+    );
+  }
+
   Future<UaePassUserToken?> getAccessToken({
     required UaePassAccessTokenRequest request,
   }) async {
