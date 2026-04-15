@@ -1,6 +1,8 @@
 # UAE PASS Authentication for Flutter
 
-A production-ready Flutter package for **UAE PASS** authentication. Built for robustness, security, and developer ease-of-use. Handles native app redirects, deep link resumption, and OIDC token flows out of the box.
+A production-ready Flutter package for **UAE PASS** authentication. Built for robustness, security, and developer ease-of-use. Handles native app redirects, deep link resumption, and OIDC token flows out of the box with over 120+ UI variations.
+
+![UAE PASS Button Gallery](assets/screenshots/main_gallery.png)
 
 [![pub package](https://img.shields.io/pub/v/auth_uae_pass.svg?label=pub&color=blue)](https://pub.dev/packages/auth_uae_pass)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -9,11 +11,11 @@ A production-ready Flutter package for **UAE PASS** authentication. Built for ro
 ## 🌟 Key Features
 
 - ⚡ **Zero-Setup Lazy Resumption**: Automatically handles deep link returns (even after app restarts) without complex `initState` logic.
-- 🛡️ **Session Isolation**: Automatically clears cookies and cache before every attempt to ensure the UAE PASS server always presents a fresh transaction prompt.
-- 🕵️ **Silent Logout**: Background logout via `HeadlessInAppWebView`—no more blank/black screen flickers.
+- 🛡️ **Simplified API**: One-call `signInWithProfile` handles context, token exchange, and profile retrieval.
+- 🎨 **120+ Button Variations**: Dark, Outline, and Logo-only variants with customizable borders, radii, and grayscale modes.
+- 🌍 **Native RTL Support**: Built-in support for Arabic (LTR/RTL flipping) compliant with official design guidelines.
 - 📱 **Intelligent App Detection**: Gracefully falls back to Web/Push flows if the UAE PASS app is not installed.
-- 🛠️ **Full OIDC Support**: Ready-made methods for Token Exchange, User Profile retrieval, and Introspection.
-- 🎨 **Premium UI Component**: Customizable UAE PASS themed login button.
+- 🛠️ **SOP Level Detection**: Automatically detects and returns the Success Of Person (SOP) level (Biometrics vs Password).
 
 ---
 
@@ -39,8 +41,7 @@ To handle the "Coming back from UAE PASS" flow correctly, you **must** configure
         <action android:name="android.intent.action.VIEW" />
         <category android:name="android.intent.category.DEFAULT" />
         <category android:name="android.intent.category.BROWSABLE" />
-        <!-- Replace with your actual scheme and optional path -->
-        <data android:scheme="your_app_scheme" android:pathPrefix="/resume_authn" />
+        <data android:scheme="your_app_scheme" />
     </intent-filter>
 </activity>
 
@@ -80,99 +81,64 @@ To handle the "Coming back from UAE PASS" flow correctly, you **must** configure
 
 ## 🚀 Usage
 
-### 1. Basic Authentication
+### 1. Simple Authentication (All-in-One)
+
+The simplest way to integrate is using `signInWithProfile`. This method handles the browser popup, token exchange, and profile fetching in a single call.
 
 ```dart
 import 'package:auth_uae_pass/auth_uae_pass.dart';
 
-final auth = const AuthUaePass();
+final auth = AuthUaePass();
 
-void _onLoginTapped(BuildContext context) async {
-  final result = await auth.authenticate(
+void _login(BuildContext context) async {
+  final UaePassAuthData result = await auth.signInWithProfile(
     context,
-    request: UaePassAuthRequest(
-      environment: UaePassEnvironment.staging, // Use .production for live
-      clientId: 'your_client_id',
-      redirectUri: 'your_app_scheme:///resume_authn',
-      deepLinkScheme: 'your_app_scheme',
-    ),
+    clientId: 'your_client_id',
+    clientSecret: 'your_client_secret',
+    redirectUri: 'your_app_scheme://',
+    environment: UaePassEnvironment.staging, // Use .production for live
+    uiLocale: 'en', // 'en' or 'ar'
   );
 
-  if (result.status == UaePassFlowStatus.success) {
-     // Access the auth code: result.callbackUri?.queryParameters['code']
+  if (result.isSuccess && result.profile != null) {
+      print('Welcome, ${result.profile!.fullNameEN}');
+      print('SOP Level: ${result.sopLevel}');
   }
 }
 ```
 
-### 2. Full Flow (Token & Profile)
+### 2. Custom Login Button
 
-The package provides helpers to complete the OIDC handshake securely.
+The package includes a highly customizable login button that adheres to official branding.
 
-```dart
-// 1. Get Access Token
-final token = await auth.getAccessToken(
-  request: UaePassAccessTokenRequest(
-    clientId: 'your_client_id',
-    clientSecret: 'your_client_secret',
-    code: authCode,
-    redirectUri: 'your_app_scheme:///resume_authn',
-    environment: UaePassEnvironment.staging,
-  ),
-);
-
-// 2. Get User Profile
-final profile = await auth.getUserProfile(
-  request: UaePassUserProfileRequest(
-    accessToken: token!.accessToken!,
-    environment: UaePassEnvironment.staging,
-  ),
-);
-
-print('Hello, ${profile?.fullNameEN}');
-```
-
-### 3. Silent Logout
-
-Cleanup the session in the background without any visible WebView flicker.
-
-```dart
-await auth.logout(
-  context,
-  env: UaePassEnvironment.staging,
-  redirectUri: 'your_app_scheme:///resume_authn',
-);
-```
-
----
-
-## 🎨 UAE PASS Button
-
-A theme-compliant widget for your login screen.
+![Arabic Label Variations](assets/screenshots/label_variations_ar.png)
 
 ```dart
 UaePassLoginButton(
   onPressed: _login,
   language: UaePassButtonLanguage.english, // or .arabic
-  style: const UaePassButtonStyle(
-    borderRadius: 12,
+  labelType: UaePassButtonLabelType.continueWith,
+  style: UaePassButtonStyle.outlineVariant(
+    border: Colors.teal,
+    radius: 14,
   ),
 )
 ```
 
----
+### 3. Logo Only Variations
 
-## 💡 Advanced Scenarios
+For compact layouts or social login grids.
 
-### Cold Start Resumption
-If your app is terminated while the user is inside the UAE PASS native app, the deep link is saved. When the user returns and you call `authenticate()` again, the package **instantly** detects the pending link and completes the login without showing a loading spinner or browser.
-
-### Visitor Integration
-To fetch `unifiedID` and `profileType`, set `visitorIntegrationFirstAuth: true` in your request:
+![Logo Matrix](assets/screenshots/logo_only_gallery.png)
 
 ```dart
-UaePassAuthRequest(
-  ...
-  visitorIntegrationFirstAuth: true,
+UaePassLoginButton(
+  onPressed: _login,
+  hideLabel: true,
+  style: UaePassButtonStyle.darkVariant(
+    background: Colors.black,
+    radius: 100, // Makes it a circle
+  ).copyWith(height: 48, width: 48),
 )
 ```
 
@@ -184,6 +150,7 @@ UaePassAuthRequest(
 | :--- | :--- |
 | **Android LaunchMode** | Must be `singleTask` |
 | **Redirect URI** | Must match the service provider portal dashboard EXACTLY |
+| **Custom Scheme** | Same as Redirect URI scheme |
 | **Environment** | Production credentials will NOT work in Staging environment |
 
 ---
