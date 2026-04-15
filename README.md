@@ -3,19 +3,19 @@
 A production-ready Flutter package for **UAE PASS** authentication. Built for robustness, security, and developer ease-of-use. Handles native app redirects, deep link resumption, and OIDC token flows out of the box with over 120+ UI variations.
 
 <p align="center">
-  <img src="assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.11.33.png" width="32%" />
-  <img src="assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.11.42.png" width="32%" />
-  <img src="assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.11.48.png" width="32%" />
+  <img src="https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.11.33.png" width="32%" />
+  <img src="https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.11.42.png" width="32%" />
+  <img src="https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.11.48.png" width="32%" />
 </p>
 <p align="center">
-  <img src="assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.11.55.png" width="32%" />
-  <img src="assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.11.59.png" width="32%" />
-  <img src="assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.16.53.png" width="32%" />
+  <img src="https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.11.55.png" width="32%" />
+  <img src="https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.11.59.png" width="32%" />
+  <img src="https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.16.53.png" width="32%" />
 </p>
 <p align="center">
-  <img src="assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.16.57.png" width="32%" />
-  <img src="assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.17.01.png" width="32%" />
-  <img src="assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.17.07.png" width="32%" />
+  <img src="https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.16.57.png" width="32%" />
+  <img src="https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.17.01.png" width="32%" />
+  <img src="https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.17.07.png" width="32%" />
 </p>
 
 [![pub package](https://img.shields.io/pub/v/auth_uae_pass.svg?label=pub&color=blue)](https://pub.dev/packages/auth_uae_pass)
@@ -155,7 +155,7 @@ The `signInWithProfile` method returns a `UaePassProfile` object containing comp
 
 The package includes a highly customizable login button that adheres to official branding.
 
-![Arabic Label Variations](assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.17.07.png)
+![Arabic Label Variations](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.17.07.png)
 
 ```dart
 UaePassLoginButton(
@@ -173,7 +173,7 @@ UaePassLoginButton(
 
 For compact layouts or social login grids.
 
-![Logo Matrix](assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.11.59.png)
+![Logo Matrix](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.11.59.png)
 
 ```dart
 UaePassLoginButton(

@@ -1,3 +1,7 @@
+## 0.0.4
+
+* **Documentation**: Updated README screenshot paths to absolute GitHub URLs to ensure visibility on pub.dev.
+
 ## 0.0.3
 
 * **Unified API**: Introduced `signInWithProfile` for a simple, one-call authentication and profile retrieval flow.
