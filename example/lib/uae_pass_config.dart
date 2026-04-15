@@ -1,7 +1,6 @@
 import 'package:auth_uae_pass/auth_uae_pass.dart';
 
-/// Temporary configuration for UAE PASS authentication.
-/// Delete this file or clear the values when no longer needed.
+/// Configuration for UAE PASS authentication.
 class UaePassConfig {
   static const String clientSecret = 'your_client_secret';
   static const String clientId = 'your_client_id';
