@@ -1,8 +1,15 @@
 name: auth_uae_pass
-description: A premium Flutter package for seamless UAE PASS authentication, supporting native app integration, webview fallbacks, and user profile retrieval across Android, iOS, and Web.
+description: The definitive Flutter SDK for UAE PASS authentication. Seamlessly integrate United Arab Emirates' national identity system (UAEPASS) with support for native redirects, webview fallbacks, and user profile retrieval on Android, iOS, and Web.
 version: 0.0.4
 homepage: https://github.com/ShithinCherathuparambil/auth_uae_pass
 repository: https://github.com/ShithinCherathuparambil/auth_uae_pass
+
+topics:
+  - uae-pass
+  - authentication
+  - identity
+  - uae
+  - login
 
 environment:
   sdk: ^3.11.3

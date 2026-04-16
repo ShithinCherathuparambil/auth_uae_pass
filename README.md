@@ -1,6 +1,6 @@
-# UAE PASS Authentication for Flutter
+# UAE PASS Authentication for Flutter (UAEPASS SDK)
 
-A production-ready Flutter package for **UAE PASS** authentication. Built for robustness, security, and developer ease-of-use. Handles native app redirects, deep link resumption, and OIDC token flows out of the box with over 120+ UI variations.
+The definitive, production-ready Flutter package for **UAE PASS**, the United Arab Emirates' official digital identity. Built for robustness, security, and developer ease-of-use, this SDK handles native app redirects, deep link resumption, and OIDC token flows out of the box with over 120+ UI variations.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.11.33.png" width="32%" />
@@ -138,18 +138,41 @@ void _onLogout(BuildContext context) async {
 
 ### 3. User Profile Data
 
-The `signInWithProfile` method returns a `UaePassProfile` object containing comprehensive user details.
+The `signInWithProfile` method returns a `UaePassAuthData` object containing the following structure:
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `isSuccess` | `bool` | Helper to check if authentication succeeded |
+| `status` | `UaePassFlowStatus` | Enum: `loginSuccess`, `cancelled`, `error`, etc. |
+| `profile` | `UaePassUserProfile?` | Detailed user data (see below) |
+| `token` | `UaePassUserToken?` | Access, ID, and Refresh tokens |
+| `sopLevel` | `UaePassSopLevel` | Enum: `sop1`, `sop2`, `sop3`, or `none` |
+| `errorCode` | `String?` | Technical error code from UAE PASS |
+| `errorDescription`| `String?` | Human-readable error description |
+
+#### **UaePassUserProfile Fields**
 
 | Field | Description |
 | :--- | :--- |
-| `uuid` | Unique user identifier |
-| `fullNameEN / fullNameAR` | User's full name in English/Arabic |
-| `email` | User's verified email address (if available) |
-| `mobile` | User's verified mobile number |
-| `nationalityEN / nationalityAR`| User's nationality |
-| `gender` | User's gender |
+| `sub` | Subject identifier (Unique for the user) |
+| `uuid` | Unique user identifier (Alternative UUID) |
+| `spuuid` | Service Provider specific UUID |
 | `idn` | Emirates ID Number |
 | `unifiedId` | Unified ID (available with Visitor Integration) |
+| `email` | User's verified email address |
+| `mobile` | User's verified mobile number |
+| `fullNameEN / fullNameAR` | User's full name in English/Arabic |
+| `firstnameEN / firstnameAR`| User's first name in English/Arabic |
+| `lastnameEN / lastnameAR` | User's last name in English/Arabic |
+| `titleEN / titleAR` | User's title (e.g. Mr., Ms.) in English/Arabic |
+| `nationalityEN / nationalityAR`| User's nationality |
+| `gender` | User's gender |
+| `userType` | Type of user (e.g. SOP1, SOP2) |
+| `idType` | Type of identity document |
+| `profileType` | Resident vs Visitor profile type |
+| `acr` | Authentication Context Class Reference |
+| `amr` | List of Authentication Methods References |
+| `raw` | Full Map of all raw claims returned by UAE PASS |
 
 ### 4. Custom Login Button
 
@@ -228,3 +251,9 @@ Check this via `result.sopLevel` in the `UaePassAuthData`.
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+## 🔍 Search & Discovery Keywords
+
+**UAE PASS** | **UAEPASS** | **United Arab Emirates** | **Digital Identity** | **Official SDK** | **Smart Dubai** | **TDRA** | **Authentication** | **OIDC** | **Identity Provider** | **Dubai** | **Abu Dhabi** | **Emirates ID** | **KYC**
