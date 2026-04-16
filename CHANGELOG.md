@@ -1,3 +1,9 @@
+## 0.0.5
+
+* **SEO Optimization**: Updated metadata, topics, and documentation for improved visibility on Google and pub.dev.
+* **Pub Score**: Fixed static analysis and formatting to ensure a perfect health score.
+* **Documentation**: Expanded user profile documentation with detailed field-level descriptions.
+
 ## 0.0.4
 
 * **Documentation**: Updated README screenshot paths to absolute GitHub URLs to ensure visibility on pub.dev.
