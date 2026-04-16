@@ -30,11 +30,13 @@ void main() {
         'scope': 'profile',
       };
 
-      when(() => mockClient.post(
-            any(),
-            headers: any(named: 'headers'),
-            body: any(named: 'body'),
-          )).thenAnswer((_) async => http.Response(jsonEncode(responseData), 200));
+      when(
+        () => mockClient.post(
+          any(),
+          headers: any(named: 'headers'),
+          body: any(named: 'body'),
+        ),
+      ).thenAnswer((_) async => http.Response(jsonEncode(responseData), 200));
 
       final token = await auth.getAccessToken(
         request: UaePassAccessTokenRequest(
@@ -49,17 +51,22 @@ void main() {
       expect(token, isNotNull);
       expect(token?.accessToken, 'test_access_token');
       expect(token?.expiresIn, 3600);
-      
+
       // Verify headers
-      final captured = verify(() => mockClient.post(
-            any(),
-            headers: captureAny(named: 'headers'),
-            body: any(named: 'body'),
-          )).captured;
-      
+      final captured = verify(
+        () => mockClient.post(
+          any(),
+          headers: captureAny(named: 'headers'),
+          body: any(named: 'body'),
+        ),
+      ).captured;
+
       final headers = captured.first as Map<String, String>;
       expect(headers['Authorization'], contains('Basic'));
-      expect(headers['Content-Type'], contains('application/x-www-form-urlencoded'));
+      expect(
+        headers['Content-Type'],
+        contains('application/x-www-form-urlencoded'),
+      );
     });
 
     test('getUserProfile returns profile on success', () async {
@@ -69,10 +76,9 @@ void main() {
         'mobile': '971501234567',
       };
 
-      when(() => mockClient.get(
-            any(),
-            headers: any(named: 'headers'),
-          )).thenAnswer((_) async => http.Response(jsonEncode(responseData), 200));
+      when(
+        () => mockClient.get(any(), headers: any(named: 'headers')),
+      ).thenAnswer((_) async => http.Response(jsonEncode(responseData), 200));
 
       final profile = await auth.getUserProfile(
         request: UaePassUserProfileRequest(
@@ -85,13 +91,12 @@ void main() {
       expect(profile?.sub, 'sub_123');
       expect(profile?.fullNameEN, 'John Doe');
       expect(profile?.mobile, '971501234567');
-      
+
       // Verify authorization header
-      final captured = verify(() => mockClient.get(
-            any(),
-            headers: captureAny(named: 'headers'),
-          )).captured;
-      
+      final captured = verify(
+        () => mockClient.get(any(), headers: captureAny(named: 'headers')),
+      ).captured;
+
       final headers = captured.first as Map<String, String>;
       expect(headers['Authorization'], 'Bearer token_123');
     });
@@ -103,11 +108,13 @@ void main() {
         'client_id': 'my_client',
       };
 
-      when(() => mockClient.post(
-            any(),
-            headers: any(named: 'headers'),
-            body: any(named: 'body'),
-          )).thenAnswer((_) async => http.Response(jsonEncode(responseData), 200));
+      when(
+        () => mockClient.post(
+          any(),
+          headers: any(named: 'headers'),
+          body: any(named: 'body'),
+        ),
+      ).thenAnswer((_) async => http.Response(jsonEncode(responseData), 200));
 
       final result = await auth.introspectToken(
         request: UaePassIntrospectRequest(
@@ -124,8 +131,13 @@ void main() {
     });
 
     test('handles API errors gracefully by returning null', () async {
-      when(() => mockClient.post(any(), headers: any(named: 'headers'), body: any(named: 'body')))
-          .thenAnswer((_) async => http.Response('Unauthorized', 401));
+      when(
+        () => mockClient.post(
+          any(),
+          headers: any(named: 'headers'),
+          body: any(named: 'body'),
+        ),
+      ).thenAnswer((_) async => http.Response('Unauthorized', 401));
 
       final result = await auth.getAccessToken(
         request: UaePassAccessTokenRequest(

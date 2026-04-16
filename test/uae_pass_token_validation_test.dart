@@ -3,9 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('denies when active is false', () {
-    final UaePassIntrospectResult r = UaePassIntrospectResult.fromJson(<String, dynamic>{
-      'active': false,
-    });
+    final UaePassIntrospectResult r = UaePassIntrospectResult.fromJson(
+      <String, dynamic>{'active': false},
+    );
     final UaePassTokenValidationDecision d = evaluateIntrospectAccess(
       r,
       const UaePassTokenValidationRules(),
@@ -20,14 +20,16 @@ void main() {
       const UaePassTokenValidationRules(),
     );
     expect(d.accessAllowed, isFalse);
-    expect(d.denialCode, UaePassTokenValidationDenialCode.introspectUnavailable);
+    expect(
+      d.denialCode,
+      UaePassTokenValidationDenialCode.introspectUnavailable,
+    );
   });
 
   test('allows active token with no extra rules', () {
-    final UaePassIntrospectResult r = UaePassIntrospectResult.fromJson(<String, dynamic>{
-      'active': true,
-      'client_id': 'any',
-    });
+    final UaePassIntrospectResult r = UaePassIntrospectResult.fromJson(
+      <String, dynamic>{'active': true, 'client_id': 'any'},
+    );
     final UaePassTokenValidationDecision d = evaluateIntrospectAccess(
       r,
       const UaePassTokenValidationRules(),
@@ -36,10 +38,9 @@ void main() {
   });
 
   test('enforces client_id', () {
-    final UaePassIntrospectResult r = UaePassIntrospectResult.fromJson(<String, dynamic>{
-      'active': true,
-      'client_id': 'sdg_digivault',
-    });
+    final UaePassIntrospectResult r = UaePassIntrospectResult.fromJson(
+      <String, dynamic>{'active': true, 'client_id': 'sdg_digivault'},
+    );
     expect(
       evaluateIntrospectAccess(
         r,
@@ -57,14 +58,16 @@ void main() {
   });
 
   test('enforces client_claims', () {
-    final UaePassIntrospectResult r = UaePassIntrospectResult.fromJson(<String, dynamic>{
-      'active': true,
-      'client_id': 'sdg_digivault',
-      'client_claims': <String, dynamic>{
-        'name': 'SDG Digital Vault App',
-        'sub': 'sdg_digitalvault',
+    final UaePassIntrospectResult r = UaePassIntrospectResult.fromJson(
+      <String, dynamic>{
+        'active': true,
+        'client_id': 'sdg_digivault',
+        'client_claims': <String, dynamic>{
+          'name': 'SDG Digital Vault App',
+          'sub': 'sdg_digitalvault',
+        },
       },
-    });
+    );
     expect(
       evaluateIntrospectAccess(
         r,
@@ -79,7 +82,8 @@ void main() {
   });
 
   test('enforces required scopes', () {
-    final UaePassIntrospectResult r = UaePassIntrospectResult.fromJson(<String, dynamic>{
+    final UaePassIntrospectResult
+    r = UaePassIntrospectResult.fromJson(<String, dynamic>{
       'active': true,
       'scope':
           'urn:uae:digitalid:profile:general urn:uae:digitalid:profile:general:profileType',

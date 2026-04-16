@@ -15,7 +15,9 @@ import 'package:auth_uae_pass/auth_uae_pass.dart';
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('UaePassLoginButton renders and handles tap', (WidgetTester tester) async {
+  testWidgets('UaePassLoginButton renders and handles tap', (
+    WidgetTester tester,
+  ) async {
     var pressed = false;
 
     await tester.pumpWidget(

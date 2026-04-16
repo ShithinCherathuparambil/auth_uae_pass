@@ -6,10 +6,14 @@ repository: https://github.com/ShithinCherathuparambil/auth_uae_pass
 
 topics:
   - uae-pass
+  - uaepass
   - authentication
   - identity
-  - uae
   - login
+  - uae
+  - oauth2
+  - oidc
+  - security
 
 environment:
   sdk: ^3.11.3

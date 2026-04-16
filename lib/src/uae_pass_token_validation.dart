@@ -103,7 +103,8 @@ UaePassTokenValidationDecision evaluateIntrospectAccess(
         detail: 'client_claims missing',
       );
     }
-    for (final MapEntry<String, String> e in rules.clientClaimMatchers.entries) {
+    for (final MapEntry<String, String> e
+        in rules.clientClaimMatchers.entries) {
       final dynamic v = cc[e.key];
       final String actual = v?.toString() ?? '';
       if (actual != e.value) {
@@ -136,7 +137,10 @@ UaePassTokenValidationDecision evaluateIntrospectAccess(
   return const UaePassTokenValidationDecision.allowed();
 }
 
-bool _scopeContainsAllUrns(String? scopeSpaceSeparated, List<String> requiredUrns) {
+bool _scopeContainsAllUrns(
+  String? scopeSpaceSeparated,
+  List<String> requiredUrns,
+) {
   if (requiredUrns.isEmpty) {
     return true;
   }

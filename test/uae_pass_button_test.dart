@@ -3,21 +3,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  testWidgets('renders english sign in label by default', (WidgetTester tester) async {
+  testWidgets('renders english sign in label by default', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
-        home: Scaffold(
-          body: UaePassLoginButton(
-            onPressed: () {},
-          ),
-        ),
+        home: Scaffold(body: UaePassLoginButton(onPressed: () {})),
       ),
     );
 
     expect(find.text('Sign in with UAE PASS'), findsOneWidget);
   });
 
-  testWidgets('renders arabic sign in label when language is arabic', (WidgetTester tester) async {
+  testWidgets('renders arabic sign in label when language is arabic', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -63,7 +63,9 @@ void main() {
     expect(find.text('إنشاء حساب بالهوية الرقمية'), findsOneWidget);
   });
 
-  testWidgets('renders custom label when provided', (WidgetTester tester) async {
+  testWidgets('renders custom label when provided', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(

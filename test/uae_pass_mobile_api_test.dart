@@ -6,7 +6,10 @@ void main() {
     final Uri base = Uri.parse(
       'https://stg-id.uaepass.ae/idshub/authorize?client_id=x&response_type=code',
     );
-    final Uri withMobile = applyMobileAcrValues(base, uaePassAppInstalled: true);
+    final Uri withMobile = applyMobileAcrValues(
+      base,
+      uaePassAppInstalled: true,
+    );
     expect(withMobile.queryParameters['acr_values'], kUaePassAcrMobileOnDevice);
 
     final Uri withWeb = applyMobileAcrValues(base, uaePassAppInstalled: false);

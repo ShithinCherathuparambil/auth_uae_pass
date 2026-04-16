@@ -12,12 +12,7 @@ enum UaePassFlowStatus {
   unknown,
 }
 
-enum UaePassSopLevel {
-  sop1,
-  sop2,
-  sop3,
-  none,
-}
+enum UaePassSopLevel { sop1, sop2, sop3, none }
 
 enum UaePassButtonLanguage { english, arabic }
 

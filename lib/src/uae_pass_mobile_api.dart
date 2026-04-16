@@ -4,18 +4,22 @@ import 'package:url_launcher/url_launcher.dart';
 
 /// UAE PASS mobile authentication API (acr values, deep links).
 /// See: https://docs.uaepass.ae/feature-guides/authentication/mobile-application/guide/api
-const String kUaePassAcrMobileOnDevice = 'urn:digitalid:authentication:flow:mobileondevice';
+const String kUaePassAcrMobileOnDevice =
+    'urn:digitalid:authentication:flow:mobileondevice';
 
 /// Used when the UAE PASS app is not installed (web / push flow).
 /// User enters identifier in webview; confirmation via push on another device (see mobile API).
-const String kUaePassAcrWebFallback = 'urn:safelayer:tws:policies:authentication:level:low';
+const String kUaePassAcrWebFallback =
+    'urn:safelayer:tws:policies:authentication:level:low';
 
 /// Standard `scope` value (general profile).
 const String kUaePassScopeGeneral = 'urn:uae:digitalid:profile:general';
 
 /// Visitor integration — additional claims (first authentication only per docs).
-const String kUaePassScopeProfileType = 'urn:uae:digitalid:profile:general:profileType';
-const String kUaePassScopeUnifiedId = 'urn:uae:digitalid:profile:general:unifiedId';
+const String kUaePassScopeProfileType =
+    'urn:uae:digitalid:profile:general:profileType';
+const String kUaePassScopeUnifiedId =
+    'urn:uae:digitalid:profile:general:unifiedId';
 
 /// Space-separated `scope` for visitor integration **first** authentication call
 /// (`unifiedID` and `profileType`).
@@ -24,10 +28,14 @@ const String kUaePassVisitorFirstAuthScope =
 
 /// Merges [kUaePassVisitorFirstAuthScope] into the existing `scope` on [authorizeUri].
 Uri applyVisitorIntegrationScopes(Uri authorizeUri) {
-  final Map<String, String> params =
-      Map<String, String>.from(authorizeUri.queryParameters);
+  final Map<String, String> params = Map<String, String>.from(
+    authorizeUri.queryParameters,
+  );
   final String existing = params['scope'] ?? '';
-  final Set<String> scopes = existing.split(' ').where((s) => s.isNotEmpty).toSet();
+  final Set<String> scopes = existing
+      .split(' ')
+      .where((s) => s.isNotEmpty)
+      .toSet();
   scopes.addAll(kUaePassVisitorFirstAuthScope.split(' '));
   params['scope'] = scopes.join(' ');
   return authorizeUri.replace(queryParameters: params);
@@ -59,18 +67,22 @@ Future<bool> isUaePassAppInstalled(UaePassEnvironment environment) async {
   if (defaultTargetPlatform == TargetPlatform.android) {
     final List<String> packageIds = switch (environment) {
       UaePassEnvironment.staging => <String>[
-          'ae.uaepass.mainapp.stg',
-          'ae.uaepass.mainapp.qa',
-          'ae.uaepass.mainapp.dev',
-        ],
+        'ae.uaepass.mainapp.stg',
+        'ae.uaepass.mainapp.qa',
+        'ae.uaepass.mainapp.dev',
+      ],
       UaePassEnvironment.production => <String>['ae.uaepass.mainapp'],
     };
 
-    debugPrint('AuthUaePass: Probing Android packages: ${packageIds.join(', ')}');
+    debugPrint(
+      'AuthUaePass: Probing Android packages: ${packageIds.join(', ')}',
+    );
     for (final String packageId in packageIds) {
       try {
         final bool installed = await appCheck.isAppInstalled(packageId);
-        debugPrint('AuthUaePass: Package $packageId installed status: $installed');
+        debugPrint(
+          'AuthUaePass: Package $packageId installed status: $installed',
+        );
         if (installed) {
           debugPrint('AuthUaePass: detected Android package $packageId');
           return true;
@@ -82,7 +94,11 @@ Future<bool> isUaePassAppInstalled(UaePassEnvironment environment) async {
   }
 
   final List<String> schemes = switch (environment) {
-    UaePassEnvironment.staging => <String>['uaepassstg', 'uaepassqa', 'uaepassdev'],
+    UaePassEnvironment.staging => <String>[
+      'uaepassstg',
+      'uaepassqa',
+      'uaepassdev',
+    ],
     UaePassEnvironment.production => <String>['uaepass'],
   };
 
@@ -110,9 +126,12 @@ Uri applyMobileAcrValues(
   Uri authorizeUri, {
   required bool uaePassAppInstalled,
 }) {
-  final Map<String, String> params = Map<String, String>.from(authorizeUri.queryParameters);
-  params['acr_values'] =
-      uaePassAppInstalled ? kUaePassAcrMobileOnDevice : kUaePassAcrWebFallback;
+  final Map<String, String> params = Map<String, String>.from(
+    authorizeUri.queryParameters,
+  );
+  params['acr_values'] = uaePassAppInstalled
+      ? kUaePassAcrMobileOnDevice
+      : kUaePassAcrWebFallback;
   return authorizeUri.replace(queryParameters: params);
 }
 
@@ -123,8 +142,9 @@ Uri buildSpResumeUri({
   required String resumeAuthnPath,
   required String wrappedUrl,
 }) {
-  final String normalizedPath =
-      resumeAuthnPath.startsWith('/') ? resumeAuthnPath : '/$resumeAuthnPath';
+  final String normalizedPath = resumeAuthnPath.startsWith('/')
+      ? resumeAuthnPath
+      : '/$resumeAuthnPath';
   final String scheme = deepLinkScheme ?? spRedirectUri.scheme;
   final bool isWeb = scheme == 'http' || scheme == 'https';
 
@@ -139,8 +159,9 @@ Uri buildSpResumeUri({
 
   // For custom schemes, ensure we don't end up with triple slashes unless intended.
   // Standard format yourapp://resume_authn?url=...
-  return Uri.parse('$scheme://$normalizedPath')
-      .replace(queryParameters: <String, String>{'url': wrappedUrl});
+  return Uri.parse(
+    '$scheme://$normalizedPath',
+  ).replace(queryParameters: <String, String>{'url': wrappedUrl});
 }
 
 /// Rewrites `uaepass*://...?successURL=...&failureURL=...` so success/failure point at the SP app.
@@ -159,20 +180,21 @@ Uri rewriteUaePassDeepLinkForSp({
   if (targetLink.scheme.toLowerCase() == 'intent') {
     final String frag = targetLink.fragment;
     String baseScheme = uaePassScheme ?? 'uaepassstg';
-    
+
     // Attempt to extract explicit scheme from fragment (e.g. scheme=uaepassstg)
     final RegExp schemeRegex = RegExp(r'scheme=([^;]+)');
     final Match? match = schemeRegex.firstMatch(frag);
     if (match != null && match.groupCount >= 1) {
       baseScheme = match.group(1)!;
     }
-    
+
     // Create the normal URI instead of intent URI
     targetLink = targetLink.replace(scheme: baseScheme, fragment: '');
   }
 
-  final Map<String, String> qp =
-      Map<String, String>.from(targetLink.queryParameters);
+  final Map<String, String> qp = Map<String, String>.from(
+    targetLink.queryParameters,
+  );
 
   // Identify raw values before we start deleting keys
   final String? successRaw =
@@ -205,7 +227,9 @@ Uri rewriteUaePassDeepLinkForSp({
   qp['failureurl'] = wrap(failureRaw);
 
   final Uri rewritten = targetLink.replace(queryParameters: qp);
-  if (uaePassScheme != null && uaePassScheme.isNotEmpty && rewritten.scheme != uaePassScheme) {
+  if (uaePassScheme != null &&
+      uaePassScheme.isNotEmpty &&
+      rewritten.scheme != uaePassScheme) {
     return rewritten.replace(scheme: uaePassScheme);
   }
   return rewritten;
@@ -219,11 +243,11 @@ bool isUaePassNativeScheme(Uri uri) {
     'uaepassdev',
     'uaepassstg',
   };
-  
+
   if (known.contains(scheme)) {
     return true;
   }
-  
+
   // Handle Android intent:// deep links
   if (scheme == 'intent') {
     final String fragment = uri.fragment.toLowerCase();
@@ -231,7 +255,7 @@ bool isUaePassNativeScheme(Uri uri) {
       if (fragment.contains('scheme=$k')) return true;
     }
   }
-  
+
   return false;
 }
 
@@ -241,7 +265,8 @@ bool isSpResumeAuthnCallback({
   String? deepLinkScheme,
   required String resumeAuthnPath,
 }) {
-  final String expectedScheme = (deepLinkScheme ?? spRedirectUri.scheme).toLowerCase();
+  final String expectedScheme = (deepLinkScheme ?? spRedirectUri.scheme)
+      .toLowerCase();
   debugPrint('AuthUaePass: Resumption check for $uri');
   debugPrint('  - Scheme: ${uri.scheme} (expected: $expectedScheme)');
   debugPrint('  - Host: ${uri.host}');
@@ -252,7 +277,7 @@ bool isSpResumeAuthnCallback({
     debugPrint('AuthUaePass: [REJECT] Scheme mismatch');
     return false;
   }
-  
+
   // Normalize both by ensuring they start with / and have no trailing /
   String normalize(String s) {
     String res = s.startsWith('/') ? s : '/$s';
@@ -263,7 +288,7 @@ bool isSpResumeAuthnCallback({
   }
 
   final String normalizedTarget = normalize(resumeAuthnPath);
-  
+
   // Construct path from host + path if standard custom scheme parsing puts the path in host
   // e.g. com.example://resume_authn?url=...
   String actualPath = uri.path;
@@ -272,21 +297,23 @@ bool isSpResumeAuthnCallback({
   } else if (uri.path.isEmpty) {
     actualPath = '/';
   }
-  
+
   final String normalizedActual = normalize(actualPath);
-  debugPrint('  - Normalized Path: $normalizedActual (expected: $normalizedTarget)');
+  debugPrint(
+    '  - Normalized Path: $normalizedActual (expected: $normalizedTarget)',
+  );
 
   if (normalizedActual != normalizedTarget) {
     debugPrint('AuthUaePass: [REJECT] Path mismatch');
     return false;
   }
-  
+
   final String? nested = uri.queryParameters['url'];
   if (nested == null || nested.isEmpty) {
     debugPrint('AuthUaePass: [REJECT] Missing "url" query parameter');
     return false;
   }
-  
+
   debugPrint('AuthUaePass: [ACCEPT] Resumption criteria met');
   return true;
 }

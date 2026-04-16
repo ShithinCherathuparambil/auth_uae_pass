@@ -189,17 +189,13 @@ void main() {
   });
 
   test('success helper returns true for loginSuccess status', () {
-    const result = UaePassAuthResult(
-      status: UaePassFlowStatus.loginSuccess,
-    );
+    const result = UaePassAuthResult(status: UaePassFlowStatus.loginSuccess);
 
     expect(result.isSuccess, isTrue);
   });
 
   test('UaePassAuthData success helper works', () {
-    const data = UaePassAuthData(
-      status: UaePassFlowStatus.loginSuccess,
-    );
+    const data = UaePassAuthData(status: UaePassFlowStatus.loginSuccess);
     expect(data.isSuccess, isTrue);
   });
 

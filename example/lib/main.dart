@@ -1087,40 +1087,40 @@ class _HomePageState extends State<HomePage> {
         'No Border',
         style: TextStyle(fontSize: 12, color: Colors.grey),
       ),
-        UaePassLoginButton(
-          onPressed: _startAuth,
-          language: _btnLang,
-          style: UaePassButtonStyle.darkVariant(
+      UaePassLoginButton(
+        onPressed: _startAuth,
+        language: _btnLang,
+        style: UaePassButtonStyle.darkVariant(
           background: Colors.black,
           border: Colors.transparent,
           radius: 0,
         ),
       ),
       const SizedBox(height: 12),
-        UaePassLoginButton(
-          onPressed: _startAuth,
-          language: _btnLang,
-          style: UaePassButtonStyle.darkVariant(
+      UaePassLoginButton(
+        onPressed: _startAuth,
+        language: _btnLang,
+        style: UaePassButtonStyle.darkVariant(
           background: Colors.black,
           border: Colors.transparent,
           radius: 8,
         ),
       ),
       const SizedBox(height: 12),
-        UaePassLoginButton(
-          onPressed: _startAuth,
-          language: _btnLang,
-          style: UaePassButtonStyle.darkVariant(
+      UaePassLoginButton(
+        onPressed: _startAuth,
+        language: _btnLang,
+        style: UaePassButtonStyle.darkVariant(
           background: Colors.black,
           border: Colors.transparent,
           radius: 14,
         ),
       ),
       const SizedBox(height: 12),
-        UaePassLoginButton(
-          onPressed: _startAuth,
-          language: _btnLang,
-          style: UaePassButtonStyle.darkVariant(
+      UaePassLoginButton(
+        onPressed: _startAuth,
+        language: _btnLang,
+        style: UaePassButtonStyle.darkVariant(
           background: Colors.black,
           border: Colors.transparent,
           radius: 100,
@@ -1132,40 +1132,40 @@ class _HomePageState extends State<HomePage> {
         'White Border',
         style: TextStyle(fontSize: 12, color: Colors.grey),
       ),
-        UaePassLoginButton(
-          onPressed: _startAuth,
-          language: _btnLang,
-          style: UaePassButtonStyle.darkVariant(
+      UaePassLoginButton(
+        onPressed: _startAuth,
+        language: _btnLang,
+        style: UaePassButtonStyle.darkVariant(
           background: Colors.black,
           border: Colors.white,
           radius: 0,
         ),
       ),
       const SizedBox(height: 12),
-        UaePassLoginButton(
-          onPressed: _startAuth,
-          language: _btnLang,
-          style: UaePassButtonStyle.darkVariant(
+      UaePassLoginButton(
+        onPressed: _startAuth,
+        language: _btnLang,
+        style: UaePassButtonStyle.darkVariant(
           background: Colors.black,
           border: Colors.white,
           radius: 8,
         ),
       ),
       const SizedBox(height: 12),
-        UaePassLoginButton(
-          onPressed: _startAuth,
-          language: _btnLang,
-          style: UaePassButtonStyle.darkVariant(
+      UaePassLoginButton(
+        onPressed: _startAuth,
+        language: _btnLang,
+        style: UaePassButtonStyle.darkVariant(
           background: Colors.black,
           border: Colors.white,
           radius: 14,
         ),
       ),
       const SizedBox(height: 12),
-        UaePassLoginButton(
-          onPressed: _startAuth,
-          language: _btnLang,
-          style: UaePassButtonStyle.darkVariant(
+      UaePassLoginButton(
+        onPressed: _startAuth,
+        language: _btnLang,
+        style: UaePassButtonStyle.darkVariant(
           background: Colors.black,
           border: Colors.white,
           radius: 100,
@@ -1177,40 +1177,40 @@ class _HomePageState extends State<HomePage> {
         'Teal Border',
         style: TextStyle(fontSize: 12, color: Colors.grey),
       ),
-        UaePassLoginButton(
-          onPressed: _startAuth,
-          language: _btnLang,
-          style: UaePassButtonStyle.darkVariant(
+      UaePassLoginButton(
+        onPressed: _startAuth,
+        language: _btnLang,
+        style: UaePassButtonStyle.darkVariant(
           background: Colors.black,
           border: const Color(0xFF00B6AA),
           radius: 0,
         ),
       ),
       const SizedBox(height: 12),
-        UaePassLoginButton(
-          onPressed: _startAuth,
-          language: _btnLang,
-          style: UaePassButtonStyle.darkVariant(
+      UaePassLoginButton(
+        onPressed: _startAuth,
+        language: _btnLang,
+        style: UaePassButtonStyle.darkVariant(
           background: Colors.black,
           border: const Color(0xFF00B6AA),
           radius: 8,
         ),
       ),
       const SizedBox(height: 12),
-        UaePassLoginButton(
-          onPressed: _startAuth,
-          language: _btnLang,
-          style: UaePassButtonStyle.darkVariant(
+      UaePassLoginButton(
+        onPressed: _startAuth,
+        language: _btnLang,
+        style: UaePassButtonStyle.darkVariant(
           background: Colors.black,
           border: const Color(0xFF00B6AA),
           radius: 14,
         ),
       ),
       const SizedBox(height: 12),
-        UaePassLoginButton(
-          onPressed: _startAuth,
-          language: _btnLang,
-          style: UaePassButtonStyle.darkVariant(
+      UaePassLoginButton(
+        onPressed: _startAuth,
+        language: _btnLang,
+        style: UaePassButtonStyle.darkVariant(
           background: Colors.black,
           border: const Color(0xFF00B6AA),
           radius: 100,
@@ -1228,40 +1228,40 @@ class _HomePageState extends State<HomePage> {
         'No Border',
         style: TextStyle(fontSize: 12, color: Colors.grey),
       ),
-        UaePassLoginButton(
-          onPressed: _startAuth,
-          language: _btnLang,
-          style: UaePassButtonStyle.darkVariant(
+      UaePassLoginButton(
+        onPressed: _startAuth,
+        language: _btnLang,
+        style: UaePassButtonStyle.darkVariant(
           background: const Color(0xFF2D2D2D),
           border: Colors.transparent,
           radius: 0,
         ),
       ),
       const SizedBox(height: 12),
-        UaePassLoginButton(
-          onPressed: _startAuth,
-          language: _btnLang,
-          style: UaePassButtonStyle.darkVariant(
+      UaePassLoginButton(
+        onPressed: _startAuth,
+        language: _btnLang,
+        style: UaePassButtonStyle.darkVariant(
           background: const Color(0xFF2D2D2D),
           border: Colors.transparent,
           radius: 8,
         ),
       ),
       const SizedBox(height: 12),
-        UaePassLoginButton(
-          onPressed: _startAuth,
-          language: _btnLang,
-          style: UaePassButtonStyle.darkVariant(
+      UaePassLoginButton(
+        onPressed: _startAuth,
+        language: _btnLang,
+        style: UaePassButtonStyle.darkVariant(
           background: const Color(0xFF2D2D2D),
           border: Colors.transparent,
           radius: 14,
         ),
       ),
       const SizedBox(height: 12),
-        UaePassLoginButton(
-          onPressed: _startAuth,
-          language: _btnLang,
-          style: UaePassButtonStyle.darkVariant(
+      UaePassLoginButton(
+        onPressed: _startAuth,
+        language: _btnLang,
+        style: UaePassButtonStyle.darkVariant(
           background: const Color(0xFF2D2D2D),
           border: Colors.transparent,
           radius: 100,
@@ -1273,40 +1273,40 @@ class _HomePageState extends State<HomePage> {
         'White Border',
         style: TextStyle(fontSize: 12, color: Colors.grey),
       ),
-        UaePassLoginButton(
-          onPressed: _startAuth,
-          language: _btnLang,
-          style: UaePassButtonStyle.darkVariant(
+      UaePassLoginButton(
+        onPressed: _startAuth,
+        language: _btnLang,
+        style: UaePassButtonStyle.darkVariant(
           background: const Color(0xFF2D2D2D),
           border: Colors.white,
           radius: 0,
         ),
       ),
       const SizedBox(height: 12),
-        UaePassLoginButton(
-          onPressed: _startAuth,
-          language: _btnLang,
-          style: UaePassButtonStyle.darkVariant(
+      UaePassLoginButton(
+        onPressed: _startAuth,
+        language: _btnLang,
+        style: UaePassButtonStyle.darkVariant(
           background: const Color(0xFF2D2D2D),
           border: Colors.white,
           radius: 8,
         ),
       ),
       const SizedBox(height: 12),
-        UaePassLoginButton(
-          onPressed: _startAuth,
-          language: _btnLang,
-          style: UaePassButtonStyle.darkVariant(
+      UaePassLoginButton(
+        onPressed: _startAuth,
+        language: _btnLang,
+        style: UaePassButtonStyle.darkVariant(
           background: const Color(0xFF2D2D2D),
           border: Colors.white,
           radius: 14,
         ),
       ),
       const SizedBox(height: 12),
-        UaePassLoginButton(
-          onPressed: _startAuth,
-          language: _btnLang,
-          style: UaePassButtonStyle.darkVariant(
+      UaePassLoginButton(
+        onPressed: _startAuth,
+        language: _btnLang,
+        style: UaePassButtonStyle.darkVariant(
           background: const Color(0xFF2D2D2D),
           border: Colors.white,
           radius: 100,
@@ -1318,40 +1318,40 @@ class _HomePageState extends State<HomePage> {
         'Teal Border',
         style: TextStyle(fontSize: 12, color: Colors.grey),
       ),
-        UaePassLoginButton(
-          onPressed: _startAuth,
-          language: _btnLang,
-          style: UaePassButtonStyle.darkVariant(
+      UaePassLoginButton(
+        onPressed: _startAuth,
+        language: _btnLang,
+        style: UaePassButtonStyle.darkVariant(
           background: const Color(0xFF2D2D2D),
           border: const Color(0xFF00B6AA),
           radius: 0,
         ),
       ),
       const SizedBox(height: 12),
-        UaePassLoginButton(
-          onPressed: _startAuth,
-          language: _btnLang,
-          style: UaePassButtonStyle.darkVariant(
+      UaePassLoginButton(
+        onPressed: _startAuth,
+        language: _btnLang,
+        style: UaePassButtonStyle.darkVariant(
           background: const Color(0xFF2D2D2D),
           border: const Color(0xFF00B6AA),
           radius: 8,
         ),
       ),
       const SizedBox(height: 12),
-        UaePassLoginButton(
-          onPressed: _startAuth,
-          language: _btnLang,
-          style: UaePassButtonStyle.darkVariant(
+      UaePassLoginButton(
+        onPressed: _startAuth,
+        language: _btnLang,
+        style: UaePassButtonStyle.darkVariant(
           background: const Color(0xFF2D2D2D),
           border: const Color(0xFF00B6AA),
           radius: 14,
         ),
       ),
       const SizedBox(height: 12),
-        UaePassLoginButton(
-          onPressed: _startAuth,
-          language: _btnLang,
-          style: UaePassButtonStyle.darkVariant(
+      UaePassLoginButton(
+        onPressed: _startAuth,
+        language: _btnLang,
+        style: UaePassButtonStyle.darkVariant(
           background: const Color(0xFF2D2D2D),
           border: const Color(0xFF00B6AA),
           radius: 100,
