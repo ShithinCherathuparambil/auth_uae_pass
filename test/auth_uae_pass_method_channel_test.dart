@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:auth_uae_pass/auth_uae_pass_method_channel.dart';
+import 'package:auth_uae_pass/src/auth_uae_pass_method_channel.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

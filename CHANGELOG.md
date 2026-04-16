@@ -1,3 +1,8 @@
+## 0.0.6
+
+* **Compliance**: Shortened package description to meet pub.dev requirements (60-180 characters).
+* **Conventions**: Moved internal boilerplate files to `lib/src/` to follow Dart package layout conventions.
+
 ## 0.0.5
 
 * **SEO Optimization**: Updated metadata, topics, and documentation for improved visibility on Google and pub.dev.
