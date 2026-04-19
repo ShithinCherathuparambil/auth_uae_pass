@@ -1,3 +1,11 @@
+## 0.0.7
+
+* **Lazy Initialization**: Introduced high-performance on-demand SDK setup for cleaner app lifecycles.
+* **Error Handling**: Enhanced capture of cancellation and authentication failure states with precise status mapping.
+* **Safety Guardian**: Integrated automatic Redirect URI validation to prevent configuration errors.
+* **UI Gallery**: Added comprehensive documentation and screenshots for 120+ button variations.
+* **Production Ready**: Major release marking internal stability and feature completeness.
+
 ## 0.0.6
 
 * **Compliance**: Shortened package description to meet pub.dev requirements (60-180 characters).
