@@ -1,3 +1,10 @@
+## 0.0.8
+
+* **Documentation**: Added detailed field-level descriptions for `UaePassUserToken` and `UaePassUserProfile`.
+* **Branding**: Added platform compatibility badges (Android, iOS, Web) to the README header.
+* **Support**: Included developer contact information for support and inquiries.
+* **Layout**: Optimized README structure for better readability and a premium first impression.
+
 ## 0.0.7
 
 * **Lazy Initialization**: Introduced high-performance on-demand SDK setup for cleaner app lifecycles.

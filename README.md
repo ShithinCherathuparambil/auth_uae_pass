@@ -1,11 +1,16 @@
 # UAE PASS Flutter SDK: Secure Login & Identity for UAE Apps
 
+[![pub package](https://img.shields.io/pub/v/auth_uae_pass.svg?label=pub&color=blue)](https://pub.dev/packages/auth_uae_pass)
+![Android](https://img.shields.io/badge/Android-3DDC84?style=flat-square&logo=android&logoColor=white)
+![iOS](https://img.shields.io/badge/iOS-000000?style=flat-square&logo=ios&logoColor=white)
+![Web](https://img.shields.io/badge/Web-4285F4?style=flat-square&logo=google-chrome&logoColor=white)
+[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+
 The definitive, production-ready Flutter package for **UAE PASS**, the United Arab Emirates' official digital identity solution. Built for security, speed, and seamless developer experience (DX), this SDK handles native app redirects, deep link resumption, and OIDC token flows out of the box with over 120+ customizable UI variations.
 
 ![UAE PASS Flutter SDK Showcase](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/uae_pass_sdk_showcase_1776589380172.png)
 
-[![pub package](https://img.shields.io/pub/v/auth_uae_pass.svg?label=pub&color=blue)](https://pub.dev/packages/auth_uae_pass)
-[![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ---
 
@@ -16,6 +21,7 @@ The definitive, production-ready Flutter package for **UAE PASS**, the United Ar
 *   **🛡️ SOP Level Detection**: Automatically detect verification levels (`sop1`, `sop2`, `sop3`) for high-security applications.
 *   **📱 Cold Start Support**: Robust deep link handling even if the app was killed in the background.
 *   **🎨 120+ UI Variations**: Official-style buttons that fit any design system (Dark, Light, Outline, Labels).
+*   **🌐 Web & Desktop Support**: Fully compatible with Flutter Web, providing a seamless browser-based OIDC flow.
 
 ---
 
@@ -167,6 +173,56 @@ The SDK automatically detects the verification level used by the user. Perfect f
 | `sop2` | Verified | User authenticated via Fingerprint/FaceID. | Biometrics |
 | `sop3` | FaceID | Official government-verified face recognition. | Face Verification |
 
+### Auth Result (UaePassAuthData)
+
+When you call `signInWithProfile` or `upgradeToSOP3`, you receive a `UaePassAuthData` object containing the flow results.
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `status` | `UaePassFlowStatus` | The overall status of the authentication flow (`loginSuccess`, `cancelled`, `error`, `unknown`). |
+| `token` | `UaePassUserToken?` | OIDC tokens (Access, ID, Refresh) and expiry details. Available on success. |
+| `profile` | `UaePassUserProfile?` | Decoded user profile details like Emirates ID, Full Name, Email, and Mobile. Available on success. |
+| `errorCode` | `String?` | Machine-readable error code if the status is `error` (e.g., `DOCUMENTS_NOT_VERIFIED`). |
+| `errorDescription` | `String?` | Human-readable error message explaining why the flow failed. |
+| `statusCode` | `String?` | The raw status code returned from the UAE PASS callback (e.g., `SOP1`, `USER_CANCELLED`). |
+| `sopLevel` | `UaePassSopLevel` | The detected Success Of Person level for the current session (`sop1`, `sop2`, `sop3`). |
+
+#### User Tokens (UaePassUserToken)
+
+Contains the OIDC tokens issued by UAE PASS.
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `accessToken` | `String?` | The token used to access the userinfo endpoint and other protected resources. |
+| `tokenType` | `String?` | Typically "Bearer". |
+| `expiresIn` | `int?` | Duration in seconds until the access token expires. |
+| `scope` | `String?` | The granted scopes for this session (e.g., `openid`, `profile`, `idn`). |
+| `refreshToken` | `String?` | Used to obtain new access tokens when the current one expires. |
+| `idToken` | `String?` | The JWT containing identity claims about the authenticated user. |
+
+#### User Profile (UaePassUserProfile)
+
+Contains detailed identity information about the user. All fields are optional depending on the scopes granted.
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| **`idn`** | `String?` | **Emirates ID Number** (The most critical field for local apps). |
+| `fullNameEN` | `String?` | User's full name in English. |
+| `fullNameAR` | `String?` | User's full name in Arabic. |
+| `firstnameEN` | `String?` | First name in English. |
+| `lastnameEN` | `String?` | Last name in English. |
+| `email` | `String?` | Registered email address. |
+| `mobile` | `String?` | Registered mobile number. |
+| `gender` | `String?` | User's gender. |
+| `nationalityEN`| `String?` | Nationality in English. |
+| `userType` | `String?` | e.g., citizen, resident, or visitor. |
+| `acr` | `String?` | Authentication Context Class Reference (shows verification level). |
+| `amr` | `List<String>?`| Authentication Methods References. |
+| `uuid` | `String?` | Unique persistent identifier for the user. |
+| `spuuid` | `String?` | Service Provider specific UUID. |
+| `unifiedId` | `String?` | Unified ID (useful for visitor/profile mapping). |
+
+
 ---
 
 ## 💎 Pro Features
@@ -206,3 +262,5 @@ Your `redirectUri` **must** be the HTTPS URL registered in the UAE PASS portal. 
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
+
+Developed by **Shithin Cp** ([shithincp@gmail.com](mailto:shithincp@gmail.com))
