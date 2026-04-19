@@ -1,4 +1,4 @@
-# UAE PASS Flutter SDK: Secure Login & Identity for UAE Apps
+# UAE PASS Flutter SDK: Official Digital Identity & Secure Login
 
 [![pub package](https://img.shields.io/pub/v/auth_uae_pass.svg?label=pub&color=blue)](https://pub.dev/packages/auth_uae_pass)
 ![Android](https://img.shields.io/badge/Android-3DDC84?style=flat-square&logo=android&logoColor=white)
@@ -6,10 +6,9 @@
 ![Web](https://img.shields.io/badge/Web-4285F4?style=flat-square&logo=google-chrome&logoColor=white)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+The definitive, production-ready Flutter package for **UAE PASS**, the United Arab Emirates' official digital identity and smart login solution. Built for security, speed, and seamless developer experience (DX), this SDK simplifies **OAuth 2.0 / OIDC** integration, native app redirects, and **Emirates ID** profile retrieval with over 120+ customizable UI variations.
 
-The definitive, production-ready Flutter package for **UAE PASS**, the United Arab Emirates' official digital identity solution. Built for security, speed, and seamless developer experience (DX), this SDK handles native app redirects, deep link resumption, and OIDC token flows out of the box with over 120+ customizable UI variations.
-
-![UAE PASS Flutter SDK Showcase](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/uae_pass_sdk_showcase_1776589380172.png)
+![Official UAE PASS Flutter SDK - Secure Authentication Showcase](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/uae_pass_sdk_showcase_1776589380172.png)
 
 
 ---
@@ -133,7 +132,7 @@ The `UaePassLoginButton` follows official brand guidelines and supports a built-
 
 ```dart
 UaePassLoginButton(
-  onPressed: _login,
+  onPressed: _loginWithUaePass,
   isLoading: _myLoadingVariable, 
   language: UaePassButtonLanguage.english, // or .arabic
 )
@@ -149,15 +148,15 @@ The SDK provides over 120+ variations of the official UAE PASS button, catering 
 
 | Dark & Grey Variants | Outlined & Labels | Compact & Logo Only |
 | :---: | :---: | :---: |
-| [![Dark Variants](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_showcase_1776590628965.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_showcase_1776590628965.png) | [![Outlined Variants](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_outline_labels_showcase_1776590649780.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_outline_labels_showcase_1776590649780.png) | [![Logo Only](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_logo_only_showcase_1776590675207.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_logo_only_showcase_1776590675207.png) |
+| [![UAE PASS Dark & Grey Button Variants](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_showcase_1776590628965.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_showcase_1776590628965.png) | [![UAE PASS Outlined & Label Button Variants](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_outline_labels_showcase_1776590649780.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_outline_labels_showcase_1776590649780.png) | [![UAE PASS Compact Logo-Only Buttons](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_logo_only_showcase_1776590675207.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_logo_only_showcase_1776590675207.png) |
 | **Dark Black (English)** | **Outlined (English)** | **Logo Only (Minimal)** |
-| [![Dark Black EN](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_black_en.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_black_en.png) | [![Outlined EN](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_outline_en.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_outline_en.png) | [![Logo Only](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_logo_only.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_logo_only.png) |
+| [![UAE PASS English Dark Black Variant](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_black_en.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_black_en.png) | [![UAE PASS English Outlined Variant](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_outline_en.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_outline_en.png) | [![UAE PASS Logo-Only Minimal View](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_logo_only.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_logo_only.png) |
 | **Dark Black (Arabic)** | **Outlined (Arabic)** | |
-| [![Dark Black AR](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_black_ar.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_black_ar.png) | [![Outlined AR](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_outline_ar.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_outline_ar.png) | |
+| [![UAE PASS Arabic Dark Black Variant](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_black_ar.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_black_ar.png) | [![UAE PASS Arabic Outlined Variant](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_outline_ar.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_outline_ar.png) | |
 | **Dark Grey (English)** | **Labels (English)** | |
-| [![Dark Grey EN](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_grey_en.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_grey_en.png) | [![Labels EN](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_labels_en.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_labels_en.png) | |
+| [![UAE PASS English Dark Grey Variant](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_grey_en.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_grey_en.png) | [![UAE PASS English Login Label Variant](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_labels_en.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_labels_en.png) | |
 | **Dark Grey (Arabic)** | **Labels (Arabic)** | |
-| [![Dark Grey AR](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_grey_ar.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_grey_ar.png) | [![Labels AR](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_labels_ar.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_labels_ar.png) | |
+| [![UAE PASS Arabic Dark Grey Variant](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_grey_ar.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_grey_ar.png) | [![UAE PASS Arabic Login Label Variant](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_labels_ar.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_labels_ar.png) | |
 
 
 ---
