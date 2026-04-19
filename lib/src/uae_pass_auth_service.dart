@@ -3,21 +3,48 @@ import 'dart:convert';
 
 import 'package:app_links/app_links.dart';
 import 'package:auth_uae_pass/auth_uae_pass.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
 
 class AuthUaePass {
-  const AuthUaePass({http.Client? httpClient, AppLinks? appLinks})
-    : _httpClient = httpClient,
-      _appLinks = appLinks;
+  const AuthUaePass({this.config, this.onEvent, http.Client? httpClient})
+    : _httpClient = httpClient;
+
+  static AuthUaePass? _instance;
+
+  /// Returns the global singleton instance of [AuthUaePass].
+  ///
+  /// You must call [AuthUaePass.initialize] before accessing this.
+  static AuthUaePass get instance {
+    if (_instance == null) {
+      throw UaePassException(
+        'AuthUaePass is not initialized. Call AuthUaePass.initialize(config) first.',
+      );
+    }
+    return _instance!;
+  }
+
+  /// Initializes the global [AuthUaePass] singleton with your configuration.
+  static void initialize(
+    UaePassConfig config, {
+    void Function(UaePassEvent)? onEvent,
+  }) {
+    _instance = AuthUaePass(config: config, onEvent: onEvent);
+  }
+
+  /// Optional configuration for UAE Pass service.
+  /// If provided, methods like [signInWithProfile] will use these credentials.
+  final UaePassConfig? config;
+
+  /// Optional callback to listen for SDK events (analytics, haptics, etc.).
+  final void Function(UaePassEvent event)? onEvent;
 
   final http.Client? _httpClient;
-  final AppLinks? _appLinks;
 
   http.Client get _client => _httpClient ?? http.Client();
-  AppLinks get _links => _appLinks ?? AppLinks();
 
   /// Internal stream for native deep link returns.
   static final StreamController<Uri> _deepLinkStream =
@@ -44,19 +71,34 @@ class AuthUaePass {
     _initialLinkHandled = false;
   }
 
-  /// Ensures the global deep link listener is active.
-  static void _ensureInitialized([AppLinks? links]) {
+  /// Ensures the global deep link listener is active and checks for initial links.
+  static Future<void> _ensureInitialized([AppLinks? links]) async {
     if (_internalSubscription != null) return;
     final AppLinks appLinks = links ?? AppLinks();
+
     _internalSubscription = appLinks.uriLinkStream.listen((uri) {
       onDeepLinkReceived(uri);
     });
+
+    // Check for cold start links if not already handled
+    if (!_initialLinkHandled) {
+      try {
+        final initialUri = await appLinks.getInitialLink();
+        if (initialUri != null) {
+          UaePassLogger.d('Cold start link detected: $initialUri');
+          onDeepLinkReceived(initialUri);
+        }
+      } catch (e) {
+        UaePassLogger.e('Error checking initial link', e);
+      }
+      _initialLinkHandled = true;
+    }
   }
 
   /// Call this from your app's deep link listener (e.g. app_links or uni_links)
   /// when a URL with your custom scheme is received.
   static void onDeepLinkReceived(Uri uri) {
-    debugPrint('AuthUaePass: Captured link: $uri');
+    UaePassLogger.d('Captured link: $uri');
     _lastCapturedLink = uri;
     _deepLinkStream.add(uri);
   }
@@ -64,8 +106,31 @@ class AuthUaePass {
   /// Clears any buffered deep links.
   static void clearCapturedLink() {
     if (_lastCapturedLink != null) {
-      debugPrint('AuthUaePass: Clearing captured link buffer');
+      UaePassLogger.d('Clearing captured link buffer');
       _lastCapturedLink = null;
+    }
+  }
+
+  /// Probes whether the UAE PASS app is installed on this device.
+  ///
+  /// Useful for showing conditional UI like "Install UAE PASS".
+  Future<bool> isAppInstalled([UaePassEnvironment? environment]) async {
+    final UaePassEnvironment targetEnv =
+        environment ?? config?.environment ?? UaePassEnvironment.production;
+    return isUaePassAppInstalled(targetEnv);
+  }
+
+  /// Internal Safety Guardian: Warns developers about common mismatch errors.
+  void _validateRedirectUri(String? redirectUri) {
+    if (!kDebugMode || redirectUri == null) return;
+    if (!redirectUri.startsWith('https://')) {
+      UaePassLogger.w(
+        '--- SAFETY GUARDIAN WARNING ---\n'
+        'Your redirectUri ($redirectUri) does not start with https://.\n'
+        'UAE PASS portal registration REQUIRES an HTTPS callback.\n'
+        'Custom schemes (like myapp://) should be set in deepLinkScheme, NOT redirectUri.\n'
+        '-------------------------------',
+      );
     }
   }
 
@@ -110,9 +175,7 @@ class AuthUaePass {
     );
 
     if (isResumption) {
-      debugPrint(
-        'AuthUaePass: Detected resumption link, launching recovery flow...',
-      );
+      UaePassLogger.i('Detected resumption link, launching recovery flow...');
       authenticateWithResumption(
         context,
         deepLink: uri,
@@ -126,7 +189,7 @@ class AuthUaePass {
     required UaePassAuthRequest request,
   }) async {
     final result = await authenticate(context, request: request);
-    debugPrint('AuthUaePass: signIn result status=${result.status}');
+    UaePassLogger.d('signIn result status=${result.status}');
     if (!result.isSuccess) {
       return null;
     }
@@ -136,54 +199,105 @@ class AuthUaePass {
       return null;
     }
     final code = callbackUri.queryParameters['code'];
-    debugPrint(
-      'AuthUaePass: signIn retrieved code=${code != null ? '***' : 'null'}',
-    );
+    UaePassLogger.d('signIn retrieved code=${code != null ? '***' : 'null'}');
     return code;
   }
 
   /// A simplified high-level method to perform the full UAE PASS authentication flow.
   ///
-  /// This method:
-  /// 1. Builds the authorization URL.
-  /// 2. Launches the WebView for user authentication.
-  /// 3. Exchanges the authorization code for an access token.
-  /// 4. Fetches the user profile data.
+  /// This method handles the browser popup, token exchange, and profile fetching
+  /// in a single call.
+  ///
+  /// ### Parameters:
+  /// - [clientId]: Your Service Provider client ID (e.g. `your_app_stg`).
+  /// - [clientSecret]: Your Service Provider client secret.
+  /// - [redirectUri]: The **exact HTTPS URL** registered in the UAE PASS portal.
+  /// - [environment]: Use [UaePassEnvironment.staging] for testing.
+  /// - [deepLinkScheme]: Your app's custom scheme (e.g. `ae.myapp.com`). **CRITICAL**:
+  ///   Providing this ensures the return redirect works reliably on all devices.
+  /// - [uiLocale]: The language of the login screens (`'en'` or `'ar'`).
   ///
   /// Returns a [UaePassAuthData] containing the final status, token, and profile.
+  /// Throws a [UaePassException] if configuration is missing or the flow fails.
   Future<UaePassAuthData> signInWithProfile(
     BuildContext context, {
-    required String clientId,
-    required String clientSecret,
-    required String redirectUri,
-    required UaePassEnvironment environment,
-    String uiLocale = 'en',
+    String? clientId,
+    String? clientSecret,
+    String? redirectUri,
+    UaePassEnvironment? environment,
+    String? uiLocale,
+    String? deepLinkScheme,
+    String? acrValues,
     List<String> cancelledUriPatterns = const <String>[],
+    UaePassConfig? configOverride,
   }) async {
+    final effectiveConfig = configOverride ?? config;
+    final resolvedClientId = clientId ?? effectiveConfig?.clientId;
+    final resolvedClientSecret = clientSecret ?? effectiveConfig?.clientSecret;
+    final resolvedRedirectUri = redirectUri ?? effectiveConfig?.redirectUri;
+    final resolvedEnvironment = environment ?? effectiveConfig?.environment;
+    final resolvedUiLocale = uiLocale ?? effectiveConfig?.uiLocale ?? 'en';
+    final resolvedDeepLinkScheme =
+        deepLinkScheme ?? effectiveConfig?.deepLinkScheme;
+    final resolvedAcrValues = acrValues ?? effectiveConfig?.acrValues;
+
+    _validateRedirectUri(resolvedRedirectUri);
+
+    if (resolvedClientId == null ||
+        resolvedClientSecret == null ||
+        resolvedRedirectUri == null ||
+        resolvedEnvironment == null) {
+      throw UaePassException(
+        'Missing required UAE Pass configuration. Provide a config in the constructor, '
+        'pass a configOverride, or provide individual parameters.',
+      );
+    }
+
+    // Safety check: UAE Pass requires HTTPS for redirectUri in production.
+    if (!resolvedRedirectUri.startsWith('https://')) {
+      UaePassLogger.e(
+        'CRITICAL: redirectUri must start with https:// for UAE PASS. '
+        'Detected: $resolvedRedirectUri. This WILL cause failures in the production app.',
+      );
+    }
+
+    onEvent?.call(UaePassEvent.authStarted);
+
     final String authUrl = authorizationUrl(
-      env: environment,
-      clientId: clientId,
-      redirectUri: redirectUri,
-      uiLocales: uiLocale,
+      environment: resolvedEnvironment,
+      clientId: resolvedClientId,
+      redirectUri: resolvedRedirectUri,
+      uiLocales: resolvedUiLocale,
+      acrValues: resolvedAcrValues,
     );
 
     final authResult = await authenticate(
       context,
       request: UaePassAuthRequest(
         authorizationUrl: authUrl,
-        redirectUri: redirectUri,
-        environment: environment,
+        redirectUri: resolvedRedirectUri,
+        environment: resolvedEnvironment,
+        deepLinkScheme: resolvedDeepLinkScheme,
         cancelledUriPatterns: cancelledUriPatterns,
       ),
+      onEvent: onEvent,
     );
 
     if (!authResult.isSuccess) {
+      if (authResult.status == UaePassFlowStatus.cancelled) {
+        onEvent?.call(UaePassEvent.cancelled);
+      } else {
+        onEvent?.call(UaePassEvent.error);
+      }
       return UaePassAuthData(
         status: authResult.status,
         errorCode: authResult.errorCode,
         errorDescription: authResult.errorDescription,
+        statusCode: authResult.statusCode,
       );
     }
+
+    onEvent?.call(UaePassEvent.webviewLoaded);
 
     final code = authResult.callbackUri?.queryParameters['code'];
     if (code == null) {
@@ -191,58 +305,110 @@ class AuthUaePass {
         status: authResult.status,
         errorCode: 'MISSING_CODE',
         errorDescription: 'Authentication succeeded but no code was returned.',
+        statusCode: authResult.statusCode,
       );
     }
 
     final token = await getAccessToken(
       request: UaePassAccessTokenRequest(
-        tokenUrl: UaePassIdHubEndpoints.tokenUrl(environment),
-        clientId: clientId,
-        clientSecret: clientSecret,
-        redirectUri: redirectUri,
+        tokenUrl: UaePassIdHubEndpoints.tokenUrl(resolvedEnvironment),
+        clientId: resolvedClientId,
+        clientSecret: resolvedClientSecret,
+        redirectUri: resolvedRedirectUri,
         code: code,
       ),
     );
 
     if (token == null || token.accessToken == null) {
+      onEvent?.call(UaePassEvent.error);
       return UaePassAuthData(
         status: authResult.status,
         errorCode: 'TOKEN_EXCHANGE_FAILED',
         errorDescription: 'Failed to exchange authorization code for token.',
+        statusCode: authResult.statusCode,
       );
     }
 
+    onEvent?.call(UaePassEvent.tokenExchanged);
+
     final profile = await getUserProfile(
       request: UaePassUserProfileRequest(
-        userInfoUrl: UaePassIdHubEndpoints.userInfoUrl(environment),
+        userInfoUrl: UaePassIdHubEndpoints.userInfoUrl(resolvedEnvironment),
         accessToken: token.accessToken!,
       ),
     );
 
     UaePassSopLevel resolvedSop = authResult.sopLevel;
-    if (resolvedSop == UaePassSopLevel.none && profile?.acr != null) {
-      final String acr = profile!.acr!.toLowerCase();
-      if (acr.endsWith(':sop1')) {
-        resolvedSop = UaePassSopLevel.sop1;
-      } else if (acr.endsWith(':sop2')) {
-        resolvedSop = UaePassSopLevel.sop2;
-      } else if (acr.endsWith(':sop3')) {
-        resolvedSop = UaePassSopLevel.sop3;
+    if (resolvedSop == UaePassSopLevel.none) {
+      final String? profileType =
+          profile?.userType?.toUpperCase() ??
+          profile?.profileType?.toUpperCase();
+
+      if (profileType != null) {
+        if (profileType.contains('SOP1')) {
+          resolvedSop = UaePassSopLevel.sop1;
+        } else if (profileType.contains('SOP2')) {
+          resolvedSop = UaePassSopLevel.sop2;
+        } else if (profileType.contains('SOP3')) {
+          resolvedSop = UaePassSopLevel.sop3;
+        }
+      }
+
+      // If still none, check ACR as backup
+      if (resolvedSop == UaePassSopLevel.none && profile?.acr != null) {
+        final String acr = profile!.acr!.toLowerCase();
+        if (acr.endsWith(':sop1')) {
+          resolvedSop = UaePassSopLevel.sop1;
+        } else if (acr.endsWith(':sop2')) {
+          resolvedSop = UaePassSopLevel.sop2;
+        } else if (acr.endsWith(':sop3')) {
+          resolvedSop = UaePassSopLevel.sop3;
+        }
       }
     }
+
+    onEvent?.call(UaePassEvent.profileFetched);
+    onEvent?.call(UaePassEvent.loginSuccess);
 
     return UaePassAuthData(
       status: authResult.status,
       token: token,
       profile: profile,
+      statusCode: authResult.statusCode,
       sopLevel: resolvedSop,
+    );
+  }
+
+  /// Specialized method to trigger a FaceID/Biometric upgrade flow.
+  ///
+  /// This specifically requests the SOP3 (Verification level 3) by appending
+  /// the official UAE PASS biometric upgrade string to the ACR values.
+  Future<UaePassAuthData> upgradeToSOP3(
+    BuildContext context, {
+    String? clientId,
+    String? clientSecret,
+    String? redirectUri,
+    UaePassEnvironment? environment,
+    String? uiLocale,
+    String? deepLinkScheme,
+  }) async {
+    UaePassLogger.i('Triggering SOP3 Upgrade flow...');
+    return signInWithProfile(
+      context,
+      clientId: clientId,
+      clientSecret: clientSecret,
+      redirectUri: redirectUri,
+      environment: environment,
+      uiLocale: uiLocale,
+      deepLinkScheme: deepLinkScheme,
+      acrValues: 'urn:uae:digitalid:profile:general:sop3',
     );
   }
 
   Future<UaePassUserToken?> getAccessToken({
     required UaePassAccessTokenRequest request,
   }) async {
-    debugPrint('AuthUaePass: getAccessToken request...');
+    UaePassLogger.d('getAccessToken request...');
     final String basicAuth =
         'Basic ${base64Encode(utf8.encode('${request.clientId}:${request.clientSecret}'))}';
     try {
@@ -272,10 +438,10 @@ class AuthUaePass {
       }
 
       final result = UaePassUserToken.fromJson(data);
-      debugPrint('AuthUaePass: getAccessToken SUCCESS');
+      UaePassLogger.i('getAccessToken SUCCESS');
       return result;
-    } catch (e) {
-      debugPrint('AuthUaePass: getAccessToken ERROR: $e');
+    } catch (e, stack) {
+      UaePassLogger.e('getAccessToken ERROR', e, stack);
       return null;
     }
   }
@@ -286,7 +452,7 @@ class AuthUaePass {
   Future<UaePassUserProfile?> getUserProfile({
     required UaePassUserProfileRequest request,
   }) async {
-    debugPrint('AuthUaePass: getUserProfile request...');
+    UaePassLogger.d('getUserProfile request...');
     try {
       final response = await _client.get(
         Uri.parse(request.userInfoUrl),
@@ -307,29 +473,29 @@ class AuthUaePass {
       }
 
       final result = UaePassUserProfile.fromJson(data);
-      debugPrint('AuthUaePass: getUserProfile SUCCESS');
-      debugPrint('  - sub: ${result.sub}');
-      debugPrint('  - uuid: ${result.uuid}');
-      debugPrint('  - unifiedId: ${result.unifiedId}');
-      debugPrint('  - fullNameEN: ${result.fullNameEN}');
-      debugPrint('  - fullNameAR: ${result.fullNameAR}');
-      debugPrint('  - email: ${result.email}');
-      debugPrint('  - mobile: ${result.mobile}');
-      debugPrint('  - idn: ${result.idn}');
-      debugPrint('  - userType: ${result.userType}');
-      debugPrint('  - profileType: ${result.profileType}');
-      debugPrint('  - acr: ${result.acr}');
-      debugPrint('  - amr: ${result.amr}');
-      debugPrint('  - nationalityEN: ${result.nationalityEN}');
-      debugPrint('  - nationalityAR: ${result.nationalityAR}');
-      debugPrint('  - gender: ${result.gender}');
-      debugPrint('  - spuuid: ${result.spuuid}');
-      debugPrint('  - idType: ${result.idType}');
-      debugPrint('  - titleEN: ${result.titleEN}');
-      debugPrint('  - titleAR: ${result.titleAR}');
+      UaePassLogger.i('getUserProfile SUCCESS');
+      UaePassLogger.d('  - sub: ${result.sub}');
+      UaePassLogger.d('  - uuid: ${result.uuid}');
+      UaePassLogger.d('  - unifiedId: ${result.unifiedId}');
+      UaePassLogger.d('  - fullNameEN: ${result.fullNameEN}');
+      UaePassLogger.d('  - fullNameAR: ${result.fullNameAR}');
+      UaePassLogger.d('  - email: ${result.email}');
+      UaePassLogger.d('  - mobile: ${result.mobile}');
+      UaePassLogger.d('  - idn: ${result.idn}');
+      UaePassLogger.d('  - userType: ${result.userType}');
+      UaePassLogger.d('  - profileType: ${result.profileType}');
+      UaePassLogger.d('  - acr: ${result.acr}');
+      UaePassLogger.d('  - amr: ${result.amr}');
+      UaePassLogger.d('  - nationalityEN: ${result.nationalityEN}');
+      UaePassLogger.d('  - nationalityAR: ${result.nationalityAR}');
+      UaePassLogger.d('  - gender: ${result.gender}');
+      UaePassLogger.d('  - spuuid: ${result.spuuid}');
+      UaePassLogger.d('  - idType: ${result.idType}');
+      UaePassLogger.d('  - titleEN: ${result.titleEN}');
+      UaePassLogger.d('  - titleAR: ${result.titleAR}');
       return result;
-    } catch (e) {
-      debugPrint('AuthUaePass: getUserProfile ERROR: $e');
+    } catch (e, stack) {
+      UaePassLogger.e('getUserProfile ERROR', e, stack);
       return null;
     }
   }
@@ -373,32 +539,18 @@ class AuthUaePass {
   Future<UaePassAuthResult> authenticate(
     BuildContext context, {
     required UaePassAuthRequest request,
+    void Function(UaePassEvent)? onEvent,
   }) async {
-    _ensureInitialized();
+    await _ensureInitialized();
     Uri? pendingUri;
 
-    // 1. Check if we have a captured runtime link
+    // 1. Check if we have a captured runtime link (from stream listener or initial check)
     if (_lastCapturedLink != null) {
       pendingUri = _lastCapturedLink;
       _lastCapturedLink = null; // Consume
     }
 
-    // 2. Check if there was an initial link (Cold Start)
-    if (pendingUri == null && !_initialLinkHandled) {
-      _initialLinkHandled = true;
-      try {
-        pendingUri = await _links.getInitialLink();
-        if (pendingUri != null) {
-          debugPrint(
-            'AuthUaePass: Found initial link for cold start: $pendingUri',
-          );
-        }
-      } catch (e) {
-        debugPrint('AuthUaePass: Error getting initial link: $e');
-      }
-    }
-
-    // 3. If a pending link exists and matches the resumption criteria, use it!
+    // 2. If a pending link exists and matches the resumption criteria, use it!
     if (pendingUri != null) {
       final bool isResumption = isSpResumeAuthnCallback(
         uri: pendingUri,
@@ -408,9 +560,7 @@ class AuthUaePass {
       );
 
       if (isResumption) {
-        debugPrint(
-          'AuthUaePass: Resuming interrupted flow via handleResumption...',
-        );
+        UaePassLogger.i('Resuming interrupted flow via handleResumption...');
         if (!context.mounted) {
           return const UaePassAuthResult(status: UaePassFlowStatus.cancelled);
         }
@@ -424,26 +574,26 @@ class AuthUaePass {
 
     Uri parsed = Uri.parse(request.authorizationUrl);
     if (request.applyMobileAcrValues) {
-      final UaePassEnvironment env =
+      final UaePassEnvironment environment =
           request.environment ?? UaePassEnvironment.production;
-      final bool installed = await isUaePassAppInstalled(env);
-      debugPrint('AuthUaePass: app check for $env: installed=$installed');
+      final bool installed = await isUaePassAppInstalled(environment);
+      UaePassLogger.d('app check for $environment: installed=$installed');
       parsed = applyMobileAcrValues(parsed, uaePassAppInstalled: installed);
     }
     if (request.visitorIntegrationFirstAuth) {
       parsed = applyVisitorIntegrationScopes(parsed);
     }
     final String initialUrl = parsed.toString();
-    debugPrint('AuthUaePass: authenticate starting with URL: $initialUrl');
+    UaePassLogger.i('authenticate starting with URL: $initialUrl');
 
     // Ensure a clean slate by clearing cookies before starting a new flow.
     // This prevents stale session state from interfering with the new request.
     try {
       final CookieManager cookieManager = CookieManager.instance();
       await cookieManager.deleteAllCookies();
-      debugPrint('AuthUaePass: WebView cookies cleared');
-    } catch (e) {
-      debugPrint('AuthUaePass: Warning clearing cookies: $e');
+      UaePassLogger.d('WebView cookies cleared');
+    } catch (e, stack) {
+      UaePassLogger.e('Warning clearing cookies', e, stack);
     }
 
     if (!context.mounted) {
@@ -488,13 +638,11 @@ class AuthUaePass {
   }) async {
     final String? nested = nestedUrlFromResumeCallback(deepLink);
     if (nested == null || nested.isEmpty) {
-      debugPrint('AuthUaePass: Resumption failed: No nested URL in $deepLink');
+      UaePassLogger.e('Resumption failed: No nested URL in $deepLink');
       return const UaePassAuthResult(status: UaePassFlowStatus.error);
     }
 
-    debugPrint(
-      'AuthUaePass: Resuming authentication via global entry: $nested',
-    );
+    UaePassLogger.i('Resuming authentication via global entry: $nested');
 
     final String uaePassScheme =
         (originalRequest.environment == UaePassEnvironment.staging)
@@ -516,6 +664,7 @@ class AuthUaePass {
           uaePassScheme: uaePassScheme,
           enableMobileDeepLinkRewrite:
               originalRequest.enableMobileDeepLinkRewrite,
+          onEvent: onEvent,
         ),
         fullscreenDialog: true,
       ),
@@ -527,17 +676,37 @@ class AuthUaePass {
 
   Future<UaePassAuthResult> logout(
     BuildContext context, {
-    required UaePassEnvironment env,
-    required String redirectUri,
+    UaePassEnvironment? environment,
+    String? redirectUri,
+    UaePassConfig? configOverride,
   }) async {
-    debugPrint('AuthUaePass: Starting silent logout...');
+    final effectiveConfig = configOverride ?? config;
+    final resolvedEnvironment = environment ?? effectiveConfig?.environment;
+    final resolvedRedirectUri = redirectUri ?? effectiveConfig?.redirectUri;
+
+    if (resolvedEnvironment == null || resolvedRedirectUri == null) {
+      throw UaePassException(
+        'Missing required UAE Pass configuration for logout. '
+        'Provide config in constructor or pass environment/redirectUri.',
+      );
+    }
+
+    _validateRedirectUri(resolvedRedirectUri);
+
+    UaePassLogger.i('Starting silent logout...');
+    onEvent?.call(UaePassEvent.logoutStarted);
     final Completer<UaePassAuthResult> completer =
         Completer<UaePassAuthResult>();
     HeadlessInAppWebView? headless;
 
     headless = HeadlessInAppWebView(
       initialUrlRequest: URLRequest(
-        url: WebUri(logoutUrl(env: env, redirectUri: redirectUri)),
+        url: WebUri(
+          logoutUrl(
+            environment: resolvedEnvironment,
+            redirectUri: resolvedRedirectUri,
+          ),
+        ),
       ),
       initialSettings: InAppWebViewSettings(
         javaScriptEnabled: true,
@@ -545,17 +714,17 @@ class AuthUaePass {
       ),
       onLoadStart: (controller, url) {
         if (url == null) return;
-        debugPrint('AuthUaePass: Silent logout loading $url');
+        UaePassLogger.d('Silent logout loading $url');
 
         final UaePassAuthResult? result = UaePassCallbackParser.parse(
           callbackUri: Uri.parse(url.toString()),
-          redirectUri: Uri.parse(redirectUri),
+          redirectUri: Uri.parse(resolvedRedirectUri),
           cancelledUriPatterns: const <String>[],
           isLogoutFlow: true,
         );
         if (result != null &&
             result.status == UaePassFlowStatus.logoutSuccess) {
-          debugPrint('AuthUaePass: Silent logout complete');
+          UaePassLogger.i('Silent logout complete');
           if (!completer.isCompleted) {
             completer.complete(result);
           }
@@ -567,13 +736,13 @@ class AuthUaePass {
 
         final UaePassAuthResult? result = UaePassCallbackParser.parse(
           callbackUri: Uri.parse(url.toString()),
-          redirectUri: Uri.parse(redirectUri),
+          redirectUri: Uri.parse(resolvedRedirectUri),
           cancelledUriPatterns: const <String>[],
           isLogoutFlow: true,
         );
         if (result != null &&
             result.status == UaePassFlowStatus.logoutSuccess) {
-          debugPrint('AuthUaePass: Silent logout complete via override');
+          UaePassLogger.i('Silent logout complete via override');
           if (!completer.isCompleted) {
             completer.complete(result);
           }
@@ -589,15 +758,20 @@ class AuthUaePass {
       final result = await completer.future.timeout(
         const Duration(seconds: 20),
         onTimeout: () {
-          debugPrint('AuthUaePass: Silent logout timed out');
+          UaePassLogger.i('Silent logout timed out');
           return const UaePassAuthResult(
             status: UaePassFlowStatus.logoutSuccess,
           );
         },
       );
+
+      if (result.status == UaePassFlowStatus.logoutSuccess) {
+        onEvent?.call(UaePassEvent.logoutSuccess);
+      }
       return result;
-    } catch (e) {
-      debugPrint('AuthUaePass: Error during silent logout: $e');
+    } catch (e, stack) {
+      UaePassLogger.e('Error during silent logout', e, stack);
+      onEvent?.call(UaePassEvent.error);
       return const UaePassAuthResult(status: UaePassFlowStatus.error);
     } finally {
       await headless.dispose();
@@ -606,12 +780,13 @@ class AuthUaePass {
 
   /// Authorize URL (acr_values applied by package when [environment] is set).
   static String authorizationUrl({
-    required UaePassEnvironment env,
+    required UaePassEnvironment environment,
     required String clientId,
     required String redirectUri,
     required String uiLocales,
+    String? acrValues,
   }) {
-    final Uri base = Uri.parse(UaePassIdHubEndpoints.authorizeUrl(env));
+    final Uri base = Uri.parse(UaePassIdHubEndpoints.authorizeUrl(environment));
     final Map<String, String> q = Map<String, String>.from(
       base.queryParameters,
     );
@@ -621,14 +796,17 @@ class AuthUaePass {
     q['scope'] = 'urn:uae:digitalid:profile:general';
     q['state'] = '${DateTime.now().millisecondsSinceEpoch}';
     q['ui_locales'] = uiLocales;
+    if (acrValues != null) {
+      q['acr_values'] = acrValues;
+    }
     return base.replace(queryParameters: q).toString();
   }
 
   static String logoutUrl({
-    required UaePassEnvironment env,
+    required UaePassEnvironment environment,
     required String redirectUri,
   }) {
-    final String hub = env == UaePassEnvironment.production
+    final String hub = environment == UaePassEnvironment.production
         ? 'https://id.uaepass.ae/idshub/logout'
         : 'https://stg-id.uaepass.ae/idshub/logout';
     return Uri.parse(hub)
@@ -650,6 +828,7 @@ class _UaePassWebViewPage extends StatefulWidget {
     required this.deepLinkScheme,
     required this.uaePassScheme,
     required this.enableMobileDeepLinkRewrite,
+    this.onEvent,
   });
 
   final String initialUrl;
@@ -663,6 +842,7 @@ class _UaePassWebViewPage extends StatefulWidget {
   final String? deepLinkScheme;
   final String uaePassScheme;
   final bool enableMobileDeepLinkRewrite;
+  final void Function(UaePassEvent)? onEvent;
 
   @override
   State<_UaePassWebViewPage> createState() => _UaePassWebViewPageState();
@@ -694,17 +874,17 @@ class _UaePassWebViewPageState extends State<_UaePassWebViewPage> {
     _deepLinkSubscription = AuthUaePass._deepLinkStream.stream.listen((
       uri,
     ) async {
-      debugPrint('AuthUaePass: WebView listener triggered for $uri');
+      UaePassLogger.d('WebView listener triggered for $uri');
       if (!mounted) {
-        debugPrint('  - [IGNORE] WebView not mounted');
+        UaePassLogger.d('  - [IGNORE] WebView not mounted');
         return;
       }
       if (_didComplete) {
-        debugPrint('  - [IGNORE] Flow already complete');
+        UaePassLogger.d('  - [IGNORE] Flow already complete');
         return;
       }
       if (_controller == null) {
-        debugPrint('  - [IGNORE] Controller is null');
+        UaePassLogger.d('  - [IGNORE] Controller is null');
         return;
       }
 
@@ -717,7 +897,8 @@ class _UaePassWebViewPageState extends State<_UaePassWebViewPage> {
       )) {
         final String? nested = nestedUrlFromResumeCallback(uri);
         if (nested != null && nested.isNotEmpty) {
-          debugPrint('AuthUaePass: [PROCESS] Resuming flow: $nested');
+          UaePassLogger.i('[PROCESS] Resuming flow: $nested');
+          widget.onEvent?.call(UaePassEvent.resumptionCaptured);
           // Clear the global buffer as we are consuming it now
           AuthUaePass.clearCapturedLink();
           await _controller!.loadUrl(
@@ -773,9 +954,8 @@ class _UaePassWebViewPageState extends State<_UaePassWebViewPage> {
                       )) {
                     final String? nested = nestedUrlFromResumeCallback(dartUri);
                     if (nested != null && nested.isNotEmpty) {
-                      debugPrint(
-                        'AuthUaePass: SP callback received, invoking $nested',
-                      );
+                      UaePassLogger.i('SP callback received, invoking $nested');
+                      widget.onEvent?.call(UaePassEvent.resumptionCaptured);
                       // Clear the global buffer as we are consuming it now
                       AuthUaePass.clearCapturedLink();
                       await controller.loadUrl(
@@ -804,9 +984,7 @@ class _UaePassWebViewPageState extends State<_UaePassWebViewPage> {
                         qp['failureUrl'];
 
                     if (success != null && failure != null) {
-                      debugPrint(
-                        'AuthUaePass: captured successURL and failureURL',
-                      );
+                      UaePassLogger.d('captured successURL and failureURL');
 
                       final Uri rewritten = rewriteUaePassDeepLinkForSp(
                         uaePassDeepLink: dartUri,
@@ -816,33 +994,33 @@ class _UaePassWebViewPageState extends State<_UaePassWebViewPage> {
                         resumeAuthnPath: widget.resumeAuthnPath,
                       );
 
-                      debugPrint('AuthUaePass: Rewritten URL = $rewritten');
+                      UaePassLogger.d('Rewritten URL = $rewritten');
 
                       try {
                         final bool launched = await launchUrl(
                           rewritten,
                           mode: LaunchMode.externalApplication,
                         );
-                        debugPrint('AuthUaePass: launch success = $launched');
+                        UaePassLogger.d('launch success = $launched');
                       } catch (e, stack) {
-                        debugPrint(
-                          'AuthUaePass: Error launching rewritten deep link: $e',
+                        UaePassLogger.e(
+                          'Error launching rewritten deep link',
+                          e,
+                          stack,
                         );
-                        debugPrint('AuthUaePass: StackTrace: $stack');
                       }
                       return NavigationActionPolicy.CANCEL;
                     }
 
-                    debugPrint('AuthUaePass: Launching native URI = $dartUri');
+                    UaePassLogger.d('Launching native URI = $dartUri');
                     try {
                       final bool launched = await launchUrl(
                         dartUri,
                         mode: LaunchMode.externalApplication,
                       );
-                      debugPrint('AuthUaePass: launch success = $launched');
+                      UaePassLogger.d('launch success = $launched');
                     } catch (e, stack) {
-                      debugPrint('AuthUaePass: Error launching native URI: $e');
-                      debugPrint('AuthUaePass: StackTrace: $stack');
+                      UaePassLogger.e('Error launching native URI', e, stack);
                     }
                     return NavigationActionPolicy.CANCEL;
                   }
@@ -856,26 +1034,23 @@ class _UaePassWebViewPageState extends State<_UaePassWebViewPage> {
                         dartUri,
                         mode: LaunchMode.externalApplication,
                       );
-                    } catch (e) {
-                      debugPrint(
-                        'AuthUaePass: Error launching external URI: $e',
-                      );
+                    } catch (e, stack) {
+                      UaePassLogger.e('Error launching external URI', e, stack);
                     }
                     return NavigationActionPolicy.CANCEL;
                   }
 
                   return NavigationActionPolicy.ALLOW;
                 },
-                onLoadStop: (_, url) {
+                onLoadStop: (controller, url) {
                   if (mounted) {
                     setState(() => _isLoading = false);
                   }
+                  widget.onEvent?.call(UaePassEvent.webviewLoaded);
                 },
                 onReceivedError: (controller, request, error) {
                   if (request.isForMainFrame != true) return;
-                  debugPrint(
-                    'AuthUaePass: WebView Error: ${error.description}',
-                  );
+                  UaePassLogger.e('WebView Error: ${error.description}');
                   _complete(
                     UaePassAuthResult(
                       status: UaePassFlowStatus.error,
@@ -886,9 +1061,7 @@ class _UaePassWebViewPageState extends State<_UaePassWebViewPage> {
                 },
                 onReceivedHttpError: (controller, request, errorResponse) {
                   if (request.isForMainFrame != true) return;
-                  debugPrint(
-                    'AuthUaePass: HTTP Error: ${errorResponse.statusCode}',
-                  );
+                  UaePassLogger.e('HTTP Error: ${errorResponse.statusCode}');
                   _complete(
                     UaePassAuthResult(
                       status: UaePassFlowStatus.error,
@@ -918,8 +1091,8 @@ class _UaePassWebViewPageState extends State<_UaePassWebViewPage> {
 
   void _complete(UaePassAuthResult result) {
     if (!mounted || _didComplete) return;
-    debugPrint(
-      'AuthUaePass: _UaePassWebViewPage complete with status=${result.status}',
+    UaePassLogger.i(
+      '_UaePassWebViewPage complete with status=${result.status}',
     );
     _didComplete = true;
     final navigator = Navigator.maybeOf(context);

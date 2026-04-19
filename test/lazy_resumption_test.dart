@@ -50,7 +50,7 @@ void main() {
         () => mockAppLinks.getInitialLink(),
       ).thenAnswer((_) async => resumeUri);
 
-      final auth = AuthUaePass(appLinks: mockAppLinks);
+      final auth = AuthUaePass();
 
       // First call - should simulate handling the link
       // Use isNotNull check just to consume the result

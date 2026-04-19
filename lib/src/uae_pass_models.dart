@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'uae_pass_exceptions.dart';
 import 'uae_pass_mobile_api.dart';
 
 const String kUaePassDocumentsNotVerifiedErrorCode = 'DOCUMENTS_NOT_VERIFIED';
@@ -131,6 +132,24 @@ class UaePassAuthResult {
       status == UaePassFlowStatus.logoutSuccess;
 
   UaePassErrorCode? get typedErrorCode => parseUaePassErrorCode(errorCode);
+
+  /// Thrown an appropriate [UaePassException] if the status is not success.
+  void throwIfError() {
+    if (isSuccess) return;
+
+    if (status == UaePassFlowStatus.cancelled) {
+      throw UaePassCancelledException();
+    }
+
+    if (errorCode == kUaePassDocumentsNotVerifiedErrorCode) {
+      throw UaePassDocumentsNotVerifiedException(message: errorDescription);
+    }
+
+    throw UaePassException(
+      errorDescription ?? 'Authentication flow failed with status: $status',
+      code: errorCode,
+    );
+  }
 }
 
 /// Consolidated result of a full UAE PASS authentication flow (Status + Token + Profile).
@@ -141,6 +160,7 @@ class UaePassAuthData {
     this.profile,
     this.errorCode,
     this.errorDescription,
+    this.statusCode,
     this.sopLevel = UaePassSopLevel.none,
   });
 
@@ -149,11 +169,30 @@ class UaePassAuthData {
   final UaePassUserProfile? profile;
   final String? errorCode;
   final String? errorDescription;
+  final String? statusCode;
   final UaePassSopLevel sopLevel;
 
   bool get isSuccess => status == UaePassFlowStatus.loginSuccess;
 
   UaePassErrorCode? get typedErrorCode => parseUaePassErrorCode(errorCode);
+
+  /// Thrown an appropriate [UaePassException] if the status is not success.
+  void throwIfError() {
+    if (isSuccess) return;
+
+    if (status == UaePassFlowStatus.cancelled) {
+      throw UaePassCancelledException();
+    }
+
+    if (errorCode == kUaePassDocumentsNotVerifiedErrorCode) {
+      throw UaePassDocumentsNotVerifiedException(message: errorDescription);
+    }
+
+    throw UaePassException(
+      errorDescription ?? 'Authentication flow failed with status: $status',
+      code: errorCode,
+    );
+  }
 }
 
 class UaePassAccessTokenRequest {
@@ -279,6 +318,14 @@ class UaePassIntrospectResult {
   final Map<String, dynamic>? userClaims;
   final int? timesVerified;
   final Map<String, dynamic> raw;
+
+  /// Returns true if the token is active and has not yet expired.
+  bool get isValid {
+    if (!active) return false;
+    if (exp == null) return true; // If no expiry is present, we rely on active flag
+    final int nowSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    return exp! > nowSeconds;
+  }
 }
 
 class UaePassUserToken {
@@ -449,6 +496,8 @@ class UaePassCallbackParser {
       callbackUri.queryParameters['sop'],
       callbackUri.queryParameters['acr'],
       callbackUri.queryParameters['code'],
+      callbackUri.queryParameters['error'],
+      callbackUri.queryParameters['error_description'],
       callbackUri.fragment,
     ];
 
@@ -478,7 +527,10 @@ class UaePassCallbackParser {
         callbackUri: callbackUri,
       );
     }
-    if (merged.contains('CANCEL')) {
+    if (merged.contains('CANCEL') ||
+        merged.contains('CANCELLEDONAPP') ||
+        merged.contains('ACCESS_DENIED') ||
+        merged.contains('UAEPASS-CANCEL')) {
       return UaePassAuthResult(
         status: UaePassFlowStatus.cancelled,
         statusCode: 'USER_CANCELLED',

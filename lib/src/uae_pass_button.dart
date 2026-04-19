@@ -12,6 +12,7 @@ class UaePassLoginButton extends StatelessWidget {
     this.style = const UaePassButtonStyle(),
     this.leading,
     this.hideLabel = false,
+    this.isLoading = false,
   });
 
   final VoidCallback onPressed;
@@ -21,6 +22,7 @@ class UaePassLoginButton extends StatelessWidget {
   final UaePassButtonStyle style;
   final Widget? leading;
   final bool hideLabel;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +36,7 @@ class UaePassLoginButton extends StatelessWidget {
         height: style.height,
         width: style.width ?? (hideLabel ? style.height : double.infinity),
         child: ElevatedButton(
-          onPressed: onPressed,
+          onPressed: isLoading ? null : onPressed,
           style: ElevatedButton.styleFrom(
             elevation: style.elevation,
             shadowColor: style.shadowColor,
@@ -49,31 +51,42 @@ class UaePassLoginButton extends StatelessWidget {
               ),
             ),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              leading ??
-                  _DefaultLogo(
-                    iconSize: style.iconSize,
-                    backgroundColor: style.backgroundColor,
-                    iconAppearance: style.iconAppearance,
-                  ),
-              if (!hideLabel) ...[
-                const SizedBox(width: 10),
-                Flexible(
-                  child: Text(
-                    customLabel ?? _defaultLabel(language, labelType),
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: 'Roboto',
-                      fontSize: style.fontSize,
-                      fontWeight: style.fontWeight,
+          child: isLoading
+              ? SizedBox(
+                  width: style.iconSize,
+                  height: style.iconSize,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      style.foregroundColor,
                     ),
                   ),
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+                    leading ??
+                        _DefaultLogo(
+                          iconSize: style.iconSize,
+                          backgroundColor: style.backgroundColor,
+                          iconAppearance: style.iconAppearance,
+                        ),
+                    if (!hideLabel) ...[
+                      const SizedBox(width: 10),
+                      Flexible(
+                        child: Text(
+                          customLabel ?? _defaultLabel(language, labelType),
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontFamily: 'Roboto',
+                            fontSize: style.fontSize,
+                            fontWeight: style.fontWeight,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-              ],
-            ],
-          ),
         ),
       ),
     );

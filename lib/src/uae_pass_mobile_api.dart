@@ -1,6 +1,7 @@
 import 'package:appcheck/appcheck.dart';
 import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'uae_pass_logger.dart';
 
 /// UAE PASS mobile authentication API (acr values, deep links).
 /// See: https://docs.uaepass.ae/feature-guides/authentication/mobile-application/guide/api
@@ -159,8 +160,12 @@ Uri buildSpResumeUri({
 
   // For custom schemes, ensure we don't end up with triple slashes unless intended.
   // Standard format yourapp://resume_authn?url=...
+  final String pathWithoutLeadingSlash = normalizedPath.startsWith('/')
+      ? normalizedPath.substring(1)
+      : normalizedPath;
+
   return Uri.parse(
-    '$scheme://$normalizedPath',
+    '$scheme://$pathWithoutLeadingSlash',
   ).replace(queryParameters: <String, String>{'url': wrappedUrl});
 }
 
@@ -267,14 +272,14 @@ bool isSpResumeAuthnCallback({
 }) {
   final String expectedScheme = (deepLinkScheme ?? spRedirectUri.scheme)
       .toLowerCase();
-  debugPrint('AuthUaePass: Resumption check for $uri');
-  debugPrint('  - Scheme: ${uri.scheme} (expected: $expectedScheme)');
-  debugPrint('  - Host: ${uri.host}');
-  debugPrint('  - Path: ${uri.path}');
-  debugPrint('  - Query: ${uri.queryParameters.keys.join(',')}');
+  UaePassLogger.d('Resumption check for $uri');
+  UaePassLogger.d('  - Scheme: ${uri.scheme} (expected: $expectedScheme)');
+  UaePassLogger.d('  - Host: ${uri.host}');
+  UaePassLogger.d('  - Path: ${uri.path}');
+  UaePassLogger.d('  - Query: ${uri.queryParameters.keys.join(',')}');
 
   if (uri.scheme.toLowerCase() != expectedScheme) {
-    debugPrint('AuthUaePass: [REJECT] Scheme mismatch');
+    UaePassLogger.d('Resumption check: [REJECT] Scheme mismatch');
     return false;
   }
 
@@ -299,22 +304,22 @@ bool isSpResumeAuthnCallback({
   }
 
   final String normalizedActual = normalize(actualPath);
-  debugPrint(
-    '  - Normalized Path: $normalizedActual (expected: $normalizedTarget)',
+  UaePassLogger.d(
+    'Resumption check: Normalized Path: $normalizedActual (expected: $normalizedTarget)',
   );
 
   if (normalizedActual != normalizedTarget) {
-    debugPrint('AuthUaePass: [REJECT] Path mismatch');
+    UaePassLogger.d('Resumption check: [REJECT] Path mismatch');
     return false;
   }
 
   final String? nested = uri.queryParameters['url'];
   if (nested == null || nested.isEmpty) {
-    debugPrint('AuthUaePass: [REJECT] Missing "url" query parameter');
+    UaePassLogger.d('Resumption check: [REJECT] Missing "url" query parameter');
     return false;
   }
 
-  debugPrint('AuthUaePass: [ACCEPT] Resumption criteria met');
+  UaePassLogger.d('Resumption check: [ACCEPT] Resumption criteria met');
   return true;
 }
 

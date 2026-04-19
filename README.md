@@ -1,76 +1,70 @@
-# UAE PASS Authentication for Flutter (UAEPASS SDK)
+# UAE PASS Flutter SDK: Secure Login & Identity for UAE Apps
 
-The definitive, production-ready Flutter package for **UAE PASS**, the United Arab Emirates' official digital identity. Built for robustness, security, and developer ease-of-use, this SDK handles native app redirects, deep link resumption, and OIDC token flows out of the box with over 120+ UI variations.
+The definitive, production-ready Flutter package for **UAE PASS**, the United Arab Emirates' official digital identity solution. Built for security, speed, and seamless developer experience (DX), this SDK handles native app redirects, deep link resumption, and OIDC token flows out of the box with over 120+ customizable UI variations.
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.11.33.png" width="32%" />
-  <img src="https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.11.42.png" width="32%" />
-  <img src="https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.11.48.png" width="32%" />
-</p>
-<p align="center">
-  <img src="https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.11.55.png" width="32%" />
-  <img src="https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.11.59.png" width="32%" />
-  <img src="https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.16.53.png" width="32%" />
-</p>
-<p align="center">
-  <img src="https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.16.57.png" width="32%" />
-  <img src="https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.17.01.png" width="32%" />
-  <img src="https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.17.07.png" width="32%" />
-</p>
+![UAE PASS Flutter SDK Showcase](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/uae_pass_sdk_showcase_1776589380172.png)
 
 [![pub package](https://img.shields.io/pub/v/auth_uae_pass.svg?label=pub&color=blue)](https://pub.dev/packages/auth_uae_pass)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-![Platform](https://img.shields.io/badge/platform-android%20|%20ios%20|%20web-blue.svg)
-
-## 🌟 Key Features
-
-- ⚡ **Zero-Setup Lazy Resumption**: Automatically handles deep link returns (even after app restarts) without complex `initState` logic.
-- 🛡️ **Simplified API**: One-call `signInWithProfile` handles context, token exchange, and profile retrieval.
-- 🎨 **120+ Button Variations**: Dark, Outline, and Logo-only variants with customizable borders, radii, and grayscale modes.
-- 🌍 **Native RTL Support**: Built-in support for Arabic (LTR/RTL flipping) compliant with official design guidelines.
-- 📱 **Intelligent App Detection**: Gracefully falls back to Web/Push flows if the UAE PASS app is not installed.
-- 🛠️ **SOP Level Detection**: Automatically detects and returns the Success Of Person (SOP) level (Biometrics vs Password).
 
 ---
 
-## 🛠️ Platform Configuration (CRITICAL)
+## 🌟 Why this UAE PASS SDK?
+
+*   **⚡ Lazy Initialization**: Optimize app startup by initializing the SDK only when needed.
+*   **📂 Full Profile Retrieval**: Get authenticated user data including Emirates ID (IDN), Email, and Full Name.
+*   **🛡️ SOP Level Detection**: Automatically detect verification levels (`sop1`, `sop2`, `sop3`) for high-security applications.
+*   **📱 Cold Start Support**: Robust deep link handling even if the app was killed in the background.
+*   **🎨 120+ UI Variations**: Official-style buttons that fit any design system (Dark, Light, Outline, Labels).
+
+---
+
+## 🚀 Quick Start (3 Steps)
+
+### Step 1: Configure Native Platforms (CRITICAL)
 
 To handle the "Coming back from UAE PASS" flow correctly, you **must** configure your native platforms to listen for your redirect URI.
 
-### 🤖 Android (`AndroidManifest.xml`)
-
-1. **Set Launch Mode**: Your `MainActivity` MUST be `singleTask`.
-2. **Add Intent Filter**: Register your redirect scheme.
-3. **Package Queries**: Allow the app to "see" UAE PASS.
+#### 🤖 Android (`AndroidManifest.xml`)
+Copy-paste this structure into your `android/app/src/main/AndroidManifest.xml`:
 
 ```xml
-<activity
-    android:name=".MainActivity"
-    android:launchMode="singleTask"
-    android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|screenLayout|density|uiMode"
-    android:hardwareAccelerated="true"
-    android:windowSoftInputMode="adjustResize">
-    
-    <intent-filter>
-        <action android:name="android.intent.action.VIEW" />
-        <category android:name="android.intent.category.DEFAULT" />
-        <category android:name="android.intent.category.BROWSABLE" />
-        <data android:scheme="your_app_scheme" />
-    </intent-filter>
-</activity>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application ... >
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            <!-- 1. CRITICAL: Change launchMode to singleTask -->
+            android:launchMode="singleTask" 
+            ...>
+            
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
 
-<!-- Allow detecting UAE PASS apps -->
-<queries>
-    <package android:name="ae.uaepass.mainapp" />
-    <package android:name="ae.uaepass.mainapp.stg" />
-    <package android:name="ae.uaepass.mainapp.qa" />
-</queries>
+            <!-- 2. ADD THIS: UAE PASS Custom Scheme Intent Filter -->
+            <!-- Use your deepLinkScheme (e.g. ae.myapp.com) as the scheme -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="ae.myapp.com" android:host="resume_authn" />
+            </intent-filter>
+        </activity>
+    </application>
+
+    <!-- 3. ADD THIS: Package Visibility (Required for Android 11+) -->
+    <queries>
+        <package android:name="ae.uaepass.mainapp" />
+        <package android:name="ae.uaepass.mainapp.stg" />
+        <package android:name="ae.uaepass.mainapp.qa" />
+    </queries>
+</manifest>
 ```
 
-### 🍎 iOS (`Info.plist`)
-
-1. **URL Types**: Register your custom scheme.
-2. **Query Schemes**: Allow the app to check for UAE PASS native apps.
+#### 🍎 iOS (`Info.plist`)
+Copy-paste this into your `ios/Runner/Info.plist`:
 
 ```xml
 <key>CFBundleURLTypes</key>
@@ -78,7 +72,7 @@ To handle the "Coming back from UAE PASS" flow correctly, you **must** configure
     <dict>
         <key>CFBundleURLSchemes</key>
         <array>
-            <string>your_app_scheme</string>
+            <string>ae.myapp.com</string>
         </array>
     </dict>
 </array>
@@ -93,167 +87,113 @@ To handle the "Coming back from UAE PASS" flow correctly, you **must** configure
 
 ---
 
-## 🚀 Usage
+### Step 2: Implementation (Lazy Pattern)
 
-### 1. Simple Authentication (All-in-One)
-
-The simplest way to integrate is using `signInWithProfile`. This method handles the browser popup, token exchange, and profile fetching in a single call.
+For apps with multiple login options (Google, Email, Phone), we recommend initializing the SDK **only** when the user selects UAE PASS. This keeps your startup lifecycle clean.
 
 ```dart
-import 'package:auth_uae_pass/auth_uae_pass.dart';
-
-final auth = AuthUaePass();
-
-void _login(BuildContext context) async {
-  final UaePassAuthData result = await auth.signInWithProfile(
-    context,
-    clientId: 'your_client_id',
-    clientSecret: 'your_client_secret',
-    redirectUri: 'your_app_scheme://',
-    environment: UaePassEnvironment.staging, // Use .production for live
-    uiLocale: 'en', // 'en' or 'ar'
+void _loginWithUaePass() async {
+  // 1. Initialize locally (on-demand)
+  final auth = AuthUaePass(
+    config: const UaePassConfig(
+      clientId: "your_client_id",
+      clientSecret: "your_client_secret",
+      redirectUri: "https://your-registered-callback.com", 
+      environment: UaePassEnvironment.staging,
+      deepLinkScheme: "ae.myapp.com",
+    ),
+    onEvent: (event) {
+      if (event == UaePassEvent.authStarted) HapticFeedback.mediumImpact();
+    },
   );
 
-  if (result.isSuccess && result.profile != null) {
-      print('Welcome, ${result.profile!.fullNameEN}');
-      print('SOP Level: ${result.sopLevel}');
+  // 2. Start the flow
+  final result = await auth.signInWithProfile(context);
+
+  if (result.isSuccess) {
+    print("Welcome, ${result.profile?.fullNameEN}");
   }
 }
 ```
 
-### 2. Silent Logout
+> [!TIP]
+> **Cold Start Support**: Even if the SDK is initialized "late," it automatically checks for any pending resumption links from the OS (e.g., if the app was killed in the background), ensuring the user's flow is never broken.
 
-Background logout via `HeadlessInAppWebView`—no more blank/black screen flickers. This ensures the next login attempt starts with a clean session.
+---
 
-```dart
-void _onLogout(BuildContext context) async {
-  await auth.logout(
-    context,
-    environment: UaePassEnvironment.staging,
-    redirectUri: 'your_app_scheme://',
-  );
-  print('Logged out from UAE PASS session');
-}
-```
+### Step 3: Add the Official Button
 
-### 3. User Profile Data
-
-The `signInWithProfile` method returns a `UaePassAuthData` object containing the following structure:
-
-| Field | Type | Description |
-| :--- | :--- | :--- |
-| `isSuccess` | `bool` | Helper to check if authentication succeeded |
-| `status` | `UaePassFlowStatus` | Enum: `loginSuccess`, `cancelled`, `error`, etc. |
-| `profile` | `UaePassUserProfile?` | Detailed user data (see below) |
-| `token` | `UaePassUserToken?` | Access, ID, and Refresh tokens |
-| `sopLevel` | `UaePassSopLevel` | Enum: `sop1`, `sop2`, `sop3`, or `none` |
-| `errorCode` | `String?` | Technical error code from UAE PASS |
-| `errorDescription`| `String?` | Human-readable error description |
-
-#### **UaePassUserProfile Fields**
-
-| Field | Description |
-| :--- | :--- |
-| `sub` | Subject identifier (Unique for the user) |
-| `uuid` | Unique user identifier (Alternative UUID) |
-| `spuuid` | Service Provider specific UUID |
-| `idn` | Emirates ID Number |
-| `unifiedId` | Unified ID (available with Visitor Integration) |
-| `email` | User's verified email address |
-| `mobile` | User's verified mobile number |
-| `fullNameEN / fullNameAR` | User's full name in English/Arabic |
-| `firstnameEN / firstnameAR`| User's first name in English/Arabic |
-| `lastnameEN / lastnameAR` | User's last name in English/Arabic |
-| `titleEN / titleAR` | User's title (e.g. Mr., Ms.) in English/Arabic |
-| `nationalityEN / nationalityAR`| User's nationality |
-| `gender` | User's gender |
-| `userType` | Type of user (e.g. SOP1, SOP2) |
-| `idType` | Type of identity document |
-| `profileType` | Resident vs Visitor profile type |
-| `acr` | Authentication Context Class Reference |
-| `amr` | List of Authentication Methods References |
-| `raw` | Full Map of all raw claims returned by UAE PASS |
-
-### 4. Custom Login Button
-
-The package includes a highly customizable login button that adheres to official branding.
-
-![Arabic Label Variations](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.17.07.png)
+The `UaePassLoginButton` follows official brand guidelines and supports a built-in loading state.
 
 ```dart
 UaePassLoginButton(
   onPressed: _login,
+  isLoading: _myLoadingVariable, 
   language: UaePassButtonLanguage.english, // or .arabic
-  labelType: UaePassButtonLabelType.continueWith,
-  style: UaePassButtonStyle.outlineVariant(
-    border: Colors.teal,
-    radius: 14,
-  ),
-)
-```
-
-### 5. Logo Only Variations
-
-For compact layouts or social login grids.
-
-![Logo Matrix](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/Simulator%20Screenshot%20-%20iPhone%2017%20-%202026-04-15%20at%2022.11.59.png)
-
-```dart
-UaePassLoginButton(
-  onPressed: _login,
-  hideLabel: true,
-  style: UaePassButtonStyle.darkVariant(
-    background: Colors.black,
-    radius: 100, // Makes it a circle
-  ).copyWith(height: 48, width: 48),
 )
 ```
 
 ---
 
-## 🏁 Final Checks
+## 🎨 UI Components Gallery
 
-| Check | Success Criteria |
-| :--- | :--- |
-| **Android LaunchMode** | Must be `singleTask` |
-| **Redirect URI** | Must match the service provider portal dashboard EXACTLY |
-| **Custom Scheme** | Same as Redirect URI scheme |
-| **Environment** | Production credentials will NOT work in Staging environment |
+The SDK provides over 120+ variations of the official UAE PASS button, catering to every design system.
+
+### 🖤 Button Gallery
+
+| Dark & Grey Variants | Outlined & Labels | Compact & Logo Only |
+| :---: | :---: | :---: |
+| ![Dark Variants](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_showcase_1776590628965.png) | ![Outlined Variants](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_outline_labels_showcase_1776590649780.png) | ![Logo Only](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_logo_only_showcase_1776590675207.png) |
 
 ---
 
-## 💡 Advanced Scenarios
+## 🛠️ Key Concepts
 
-### Cold Start Resumption
-If your app is terminated while the user is inside the UAE PASS native app, the deep link is saved. When the user returns and you call `signInWithProfile()` again, the package **instantly** detects the pending link and completes the login without showing a browser popup.
+### Success Of Person (SOP) Levels
+The SDK automatically detects the verification level used by the user. Perfect for apps requiring high-trust biometrics for financial or government services.
 
-### Visitor Integration
-To fetch `unifiedID` and `profileType`, the first authentication must use the extended visitor scope. You can enable this in the configuration:
+| Level | Name | Description | Verification Method |
+| :--- | :--- | :--- | :--- |
+| `sop1` | Basic | User authenticated via password. | Password |
+| `sop2` | Verified | User authenticated via Fingerprint/FaceID. | Biometrics |
+| `sop3` | FaceID | Official government-verified face recognition. | Face Verification |
+
+---
+
+## 💎 Pro Features
+
+### 1. Global Event Stream
+You can provide an `onEvent` callback to track milestones like `webviewLoaded` or `tokenExchanged`. This is perfect for driving your own custom loading overlays or analytics.
 
 ```dart
-final result = await auth.signInWithProfile(
-  context,
-  // ... other params
-  visitorIntegrationFirstAuth: true,
+final auth = AuthUaePass(
+  config: myConfig,
+  onEvent: (event) => MyAnalytics.log('UAE_PASS: $event'),
 );
 ```
 
-### SOP Level Detection
-The package automatically identifies the "Success Of Person" level used for authentication:
-- `sop1`: Simple Password.
-- `sop2`: Biometrics (Fingerprint/FaceID).
-- `sop3`: Verified Face ID (Official Govt verification).
+### 2. Dedicated SOP3 Upgrade
+For apps requiring high security (FaceID/Biometrics) for sensitive actions, use the specialized upgrade method.
 
-Check this via `result.sopLevel` in the `UaePassAuthData`.
+```dart
+void _verifyFaceID() async {
+  final auth = AuthUaePass(config: myConfig);
+  final result = await auth.upgradeToSOP3(context);
+}
+```
+
+---
+
+## ⚠️ Common Pitfalls
+
+### 1. The "Triple Slash" Intent Error
+Ensure your native configuration matches your `deepLinkScheme` exactly. The SDK is optimized to avoid URL parsing errors, but any mismatch in the `AndroidManifest.xml` host will cause the redirect to fail.
+
+### 2. HTTPS vs Custom Schemes
+Your `redirectUri` **must** be the HTTPS URL registered in the UAE PASS portal. However, for mobile redirection, you should use a `deepLinkScheme` (e.g. `ae.myapp.com`) to ensure the response is captured by your app and not the external browser.
 
 ---
 
 ## License
 
 MIT License - see [LICENSE](LICENSE) for details.
-
----
-
-## 🔍 Search & Discovery Keywords
-
-**UAE PASS** | **UAEPASS** | **United Arab Emirates** | **Digital Identity** | **Official SDK** | **Smart Dubai** | **TDRA** | **Authentication** | **OIDC** | **Identity Provider** | **Dubai** | **Abu Dhabi** | **Emirates ID** | **KYC**
