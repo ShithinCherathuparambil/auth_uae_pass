@@ -1,3 +1,8 @@
+## 0.1.0
+
+* **UI/UX**: Extensive refinement of the README button gallery for better discoverability.
+* **Maintenance**: Incremented version to 0.1.0 to mark the completion of the UI/UX overhaul.
+
 ## 0.0.9
 
 * **Maintenance**: Minor version bump and documentation refinements.
