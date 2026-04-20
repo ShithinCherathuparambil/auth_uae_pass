@@ -8,7 +8,6 @@
 
 The definitive, production-ready Flutter package for **UAE PASS**, the United Arab Emirates' official digital identity and smart login solution. Built for security, speed, and seamless developer experience (DX), this SDK simplifies **OAuth 2.0 / OIDC** integration, native app redirects, and **Emirates ID** profile retrieval with over 120+ customizable UI variations.
 
-![Official UAE PASS Flutter SDK - Secure Authentication Showcase](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/uae_pass_sdk_showcase_1776589380172.png)
 
 
 ---
@@ -146,9 +145,6 @@ The SDK provides over 120+ variations of the official UAE PASS button, catering 
 
 ### 🖤 Button Gallery
 
-| Dark & Grey Variants | Outlined & Labels | Compact & Logo Only |
-| :---: | :---: | :---: |
-| [![UAE PASS Dark & Grey Button Variants](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_showcase_1776590628965.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_showcase_1776590628965.png) | [![UAE PASS Outlined & Label Button Variants](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_outline_labels_showcase_1776590649780.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_outline_labels_showcase_1776590649780.png) | [![UAE PASS Compact Logo-Only Buttons](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_logo_only_showcase_1776590675207.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_logo_only_showcase_1776590675207.png) |
 | **Dark Black (English)** | **Outlined (English)** | **Logo Only (Minimal)** |
 | [![UAE PASS English Dark Black Variant](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_black_en.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_black_en.png) | [![UAE PASS English Outlined Variant](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_outline_en.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_outline_en.png) | [![UAE PASS Logo-Only Minimal View](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_logo_only.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_logo_only.png) |
 | **Dark Black (Arabic)** | **Outlined (Arabic)** | |

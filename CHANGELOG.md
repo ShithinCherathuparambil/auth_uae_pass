@@ -1,3 +1,7 @@
+## 0.0.9
+
+* **Maintenance**: Minor version bump and documentation refinements.
+
 ## 0.0.8
 
 * **Documentation**: Added detailed field-level descriptions for `UaePassUserToken` and `UaePassUserProfile`.
