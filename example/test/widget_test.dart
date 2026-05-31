@@ -13,6 +13,6 @@ void main() {
   testWidgets('renders initial auth state', (WidgetTester tester) async {
     await tester.pumpWidget(const MyApp());
 
-    expect(find.text('No auth result yet'), findsOneWidget);
+    expect(find.text('Login with UAE PASS'), findsOneWidget);
   });
 }

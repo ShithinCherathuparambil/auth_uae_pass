@@ -2,10 +2,11 @@ import 'package:auth_uae_pass/auth_uae_pass.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-const String _kClientSecret = 'your_client_secret';
-const String _kClientId = 'your_client_id';
-const String _kScheme = 'uaepassdemo';
-const String _kRedirectUri = 'uaepassdemo://';
+const String _kClientSecret = 'YOUR_CLIENT_SECRET';
+const String _kClientId = 'YOUR_CLIENT_ID';
+const String _kScheme = 'YOUR_DEEP_LINK_SCHEME';
+const String _kRedirectUri =
+    'https://your-registered-callback.com/api/auth/callback/uaepass';
 const UaePassEnvironment _kEnv = UaePassEnvironment.staging;
 
 void main() {
@@ -131,10 +132,17 @@ class _UaePassScreenState extends State<UaePassScreen> {
               if (_isLoading)
                 const CircularProgressIndicator()
               else ...[
-                UaePassLoginButton(
+                ElevatedButton(
                   onPressed: _startAuth,
-                  language: UaePassButtonLanguage.english,
-                  labelType: UaePassButtonLabelType.login,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF000000),
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text('Login with UAE PASS'),
                 ),
                 const SizedBox(height: 16),
                 if (_authData != null)

@@ -1,4 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET"/>
+
     <application
         android:label="auth_uae_pass_example"
         android:name="${applicationName}"
@@ -26,11 +28,11 @@
             </intent-filter>
 
             <!-- UAE Pass OAuth callback intent filter -->
-            <intent-filter>
+            <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="com.example.authpassuae" android:pathPrefix="/resume_authn" />
+                <data android:scheme="com.example.authpassuae" android:host="resume_authn" />
             </intent-filter> 
         </activity>
         <!-- Don't delete the meta-data below.

@@ -6,26 +6,41 @@
 ![Web](https://img.shields.io/badge/Web-4285F4?style=flat-square&logo=google-chrome&logoColor=white)
 [![License: MIT](https://img.shields.io/badge/license-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-The definitive, production-ready Flutter package for **UAE PASS**, the United Arab Emirates' official digital identity and smart login solution. Built for security, speed, and seamless developer experience (DX), this SDK simplifies **OAuth 2.0 / OIDC** integration, native app redirects, and **Emirates ID** profile retrieval with over 120+ customizable UI variations.
+The definitive, production-ready Flutter package for **UAE PASS**, the United Arab Emirates' official digital identity and smart login solution. Built for security, speed, and seamless developer experience (DX), this SDK simplifies **OAuth 2.0 / OIDC** integration, native app redirects, and **Emirates ID** profile retrieval.
 
+---
 
+## 🎥 Interactive Showcase
+
+<table>
+  <tr>
+    <td align="center"><b>Authentication Flow</b></td>
+    <td align="center"><b>SDK Showcase Mockup</b></td>
+  </tr>
+  <tr>
+    <td><img src="https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/gif/uae_pass_login.gif" width="320" alt="UAE PASS Authentication Flow"/></td>
+    <td><img src="https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/uae_pass_sdk_showcase_1776589380172.png" width="380" alt="UAE PASS SDK Showcase"/></td>
+  </tr>
+</table>
 
 ---
 
 ## 🌟 Why this UAE PASS SDK?
 
-*   **⚡ Lazy Initialization**: Optimize app startup by initializing the SDK only when needed.
-*   **📂 Full Profile Retrieval**: Get authenticated user data including Emirates ID (IDN), Email, and Full Name.
+*   **⚡ Lazy Initialization**: Optimize app startup by initializing the SDK only when needed, or use the global singleton pattern.
+*   **📂 Full Profile Retrieval**: Get authenticated user data including Emirates ID (IDN), Email, Full Name, and Gender.
 *   **🛡️ SOP Level Detection**: Automatically detect verification levels (`sop1`, `sop2`, `sop3`) for high-security applications.
+*   **📱 App Presence Probing**: Easily check if the UAE PASS application is installed on Android or iOS.
+*   **🔍 Token Introspection & Validation**: Fully inspect token status and apply custom Service Provider validation policies.
+*   **🧹 Silent Session Clearing**: Complete support for clearing web view cookies and silent logging out.
 *   **📱 Cold Start Support**: Robust deep link handling even if the app was killed in the background.
-*   **🎨 120+ UI Variations**: Official-style buttons that fit any design system (Dark, Light, Outline, Labels).
 *   **🌐 Web & Desktop Support**: Fully compatible with Flutter Web, providing a seamless browser-based OIDC flow.
 
 ---
 
 ## 🚀 Quick Start (3 Steps)
 
-### Step 1: Configure Native Platforms (CRITICAL)
+### Step 1: Configure Native Platforms
 
 To handle the "Coming back from UAE PASS" flow correctly, you **must** configure your native platforms to listen for your redirect URI.
 
@@ -91,13 +106,16 @@ Copy-paste this into your `ios/Runner/Info.plist`:
 
 ---
 
-### Step 2: Implementation (Lazy Pattern)
+### Step 2: Choose Your Initialization Pattern
 
-For apps with multiple login options (Google, Email, Phone), we recommend initializing the SDK **only** when the user selects UAE PASS. This keeps your startup lifecycle clean.
+The SDK supports two patterns for managing instance lifecycles based on your app's architecture.
+
+#### Pattern A: On-Demand / Lazy Initialization (Recommended for multi-login screens)
+If your app supports multiple login methods (Google, Apple, Phone, UAE PASS), initialize the SDK **only** when the user selects UAE PASS.
 
 ```dart
 void _loginWithUaePass() async {
-  // 1. Initialize locally (on-demand)
+  // 1. Initialize locally on-demand
   final auth = AuthUaePass(
     config: const UaePassConfig(
       clientId: "your_client_id",
@@ -120,40 +138,152 @@ void _loginWithUaePass() async {
 }
 ```
 
-> [!TIP]
-> **Cold Start Support**: Even if the SDK is initialized "late," it automatically checks for any pending resumption links from the OS (e.g., if the app was killed in the background), ensuring the user's flow is never broken.
+#### Pattern B: Global Singleton Pattern
+If UAE PASS is the primary auth provider, initialize the SDK at startup (e.g., in `main()`) and retrieve the instance anywhere.
+
+```dart
+// 1. In main.dart or your initialization service
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  AuthUaePass.initialize(
+    const UaePassConfig(
+      clientId: "your_client_id",
+      clientSecret: "your_client_secret",
+      redirectUri: "https://your-registered-callback.com", 
+      environment: UaePassEnvironment.staging,
+      deepLinkScheme: "ae.myapp.com",
+    ),
+    onEvent: (event) => print("UAE PASS Event: $event"),
+  );
+  
+  runApp(const MyApp());
+}
+
+// 2. In your login page widget
+void _login() async {
+  final result = await AuthUaePass.instance.signInWithProfile(context);
+  if (result.isSuccess) {
+    print("Success: ${result.profile?.idn}");
+  }
+}
+```
 
 ---
 
-### Step 3: Add the Official Button
+### Step 3: Trigger the Authentication
 
-The `UaePassLoginButton` follows official brand guidelines and supports a built-in loading state.
+Trigger the authentication flow using standard Flutter buttons:
 
 ```dart
-UaePassLoginButton(
+ElevatedButton(
   onPressed: _loginWithUaePass,
-  isLoading: _myLoadingVariable, 
-  language: UaePassButtonLanguage.english, // or .arabic
+  child: const Text('Login with UAE PASS'),
 )
 ```
 
 ---
 
-## 🎨 UI Components Gallery
+## 🛠️ Advanced Features & Guides
 
-The SDK provides over 120+ variations of the official UAE PASS button, catering to every design system.
+### 1. App Presence Probing
+Checking if the UAE PASS application is installed on the user's device allows you to customize the user interface or display direct help messages.
 
-### 🖤 Button Gallery
+```dart
+final auth = AuthUaePass.instance;
+final bool isInstalled = await auth.isAppInstalled();
 
-| English (LT/DK) | Arabic (RT/LT) | Minimalist |
-| :---: | :---: | :---: |
-| **Dark Black** | **Dark Black** | **Logo Only** |
-| [![English Dark Black](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_black_en.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_black_en.png) | [![Arabic Dark Black](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_black_ar.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_black_ar.png) | [![Logo Only](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_logo_only.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_logo_only.png) |
-| **Dark Grey** | **Dark Grey** | **Labels (EN)** |
-| [![English Dark Grey](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_grey_en.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_grey_en.png) | [![Arabic Dark Grey](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_grey_ar.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_dark_grey_ar.png) | [![Labels English](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_labels_en.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_labels_en.png) |
-| **Outlined** | **Outlined** | **Labels (AR)** |
-| [![English Outlined](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_outline_en.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_outline_en.png) | [![Arabic Outlined](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_outline_ar.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_outline_ar.png) | [![Labels Arabic](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_labels_ar.png)](https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/screenshots/gallery_labels_ar.png) |
+if (isInstalled) {
+  print("UAE PASS App is installed on this device!");
+} else {
+  print("UAE PASS App is not installed. Will fallback to Web/Push confirmation flow.");
+}
+```
 
+### 2. Silent Logout / Session Clearing
+To perform a complete logout and clear browser-cached cookies (to ensure a fresh login experience next time), trigger a silent background logout:
+
+```dart
+final auth = AuthUaePass.instance;
+final result = await auth.logout(context);
+
+if (result.isSuccess) {
+  print("Silent logout complete and session cookies cleared.");
+}
+```
+
+### 3. Token Introspection & SP Validation Rules
+Check user token validity on the server side or locally via OIDC token introspection (RFC 7662), and apply Service Provider validation decisions.
+
+```dart
+final auth = AuthUaePass.instance;
+
+// 1. Send token info request to introspect
+final introspectResult = await auth.introspectToken(
+  request: UaePassIntrospectRequest(
+    introspectUrl: UaePassIdHubEndpoints.introspectUrl(UaePassEnvironment.staging),
+    clientId: "your_client_id",
+    clientSecret: "your_client_secret",
+    token: "access_token_to_verify",
+  ),
+);
+
+if (introspectResult != null && introspectResult.isValid) {
+  // 2. Validate against SP guidelines (Client ID, Required Scopes, and active flag)
+  final decision = evaluateIntrospectAccess(
+    introspectResult,
+    const UaePassTokenValidationRules(
+      expectedClientId: "your_client_id",
+      requireSub: true,
+      requiredScopes: ["urn:uae:digitalid:profile:general"],
+    ),
+  );
+
+  if (decision.accessAllowed) {
+    print("Access allowed: Token is valid and matches SP policies.");
+  } else {
+    print("Access denied: ${decision.denialCode} - ${decision.denialDetail}");
+  }
+}
+```
+
+### 4. Global Event Stream
+Listen to critical flow checkpoints to feed custom analytics or show loading overlays.
+
+```dart
+final auth = AuthUaePass(
+  config: myConfig,
+  onEvent: (event) {
+    switch (event) {
+      case UaePassEvent.authStarted:
+        _showLoadingOverlay();
+        break;
+      case UaePassEvent.webviewLoaded:
+        _hideLoadingOverlay();
+        break;
+      case UaePassEvent.loginSuccess:
+        _celebrate();
+        break;
+      default:
+        break;
+    }
+  },
+);
+```
+
+### 5. Dedicated SOP3 Upgrade
+If your app needs biometric verification (FaceID) for high-trust operations (e.g. transfers, official document signs), launch the specialized SOP3 upgrade:
+
+```dart
+void _verifyFaceID() async {
+  final auth = AuthUaePass.instance;
+  final result = await auth.upgradeToSOP3(context);
+  
+  if (result.isSuccess && result.sopLevel == UaePassSopLevel.sop3) {
+    print("User authenticated with highest verification assurance (SOP3).");
+  }
+}
+```
 
 ---
 
@@ -168,7 +298,11 @@ The SDK automatically detects the verification level used by the user. Perfect f
 | `sop2` | Verified | User authenticated via Fingerprint/FaceID. | Biometrics |
 | `sop3` | FaceID | Official government-verified face recognition. | Face Verification |
 
-### Auth Result (UaePassAuthData)
+---
+
+## 📂 API Reference
+
+### Auth Result (`UaePassAuthData`)
 
 When you call `signInWithProfile` or `upgradeToSOP3`, you receive a `UaePassAuthData` object containing the flow results.
 
@@ -182,9 +316,7 @@ When you call `signInWithProfile` or `upgradeToSOP3`, you receive a `UaePassAuth
 | `statusCode` | `String?` | The raw status code returned from the UAE PASS callback (e.g., `SOP1`, `USER_CANCELLED`). |
 | `sopLevel` | `UaePassSopLevel` | The detected Success Of Person level for the current session (`sop1`, `sop2`, `sop3`). |
 
-#### User Tokens (UaePassUserToken)
-
-Contains the OIDC tokens issued by UAE PASS.
+### User Tokens (`UaePassUserToken`)
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
@@ -195,9 +327,9 @@ Contains the OIDC tokens issued by UAE PASS.
 | `refreshToken` | `String?` | Used to obtain new access tokens when the current one expires. |
 | `idToken` | `String?` | The JWT containing identity claims about the authenticated user. |
 
-#### User Profile (UaePassUserProfile)
+### User Profile (`UaePassUserProfile`)
 
-Contains detailed identity information about the user. All fields are optional depending on the scopes granted.
+Identity information about the user. Fields are populated depending on the scopes granted.
 
 | Field | Type | Description |
 | :--- | :--- | :--- |
@@ -216,31 +348,6 @@ Contains detailed identity information about the user. All fields are optional d
 | `uuid` | `String?` | Unique persistent identifier for the user. |
 | `spuuid` | `String?` | Service Provider specific UUID. |
 | `unifiedId` | `String?` | Unified ID (useful for visitor/profile mapping). |
-
-
----
-
-## 💎 Pro Features
-
-### 1. Global Event Stream
-You can provide an `onEvent` callback to track milestones like `webviewLoaded` or `tokenExchanged`. This is perfect for driving your own custom loading overlays or analytics.
-
-```dart
-final auth = AuthUaePass(
-  config: myConfig,
-  onEvent: (event) => MyAnalytics.log('UAE_PASS: $event'),
-);
-```
-
-### 2. Dedicated SOP3 Upgrade
-For apps requiring high security (FaceID/Biometrics) for sensitive actions, use the specialized upgrade method.
-
-```dart
-void _verifyFaceID() async {
-  final auth = AuthUaePass(config: myConfig);
-  final result = await auth.upgradeToSOP3(context);
-}
-```
 
 ---
 
