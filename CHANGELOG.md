@@ -1,3 +1,8 @@
+## 0.1.1
+
+* **Documentation**: Overhauled README.md with detailed setup, initialization patterns, silent logout, app presence probing, and token validation rules.
+* **Configuration**: Cleaned up hardcoded credentials and aligned deep link configuration in the example app.
+
 ## 0.1.0
 
 * **UI/UX**: Extensive refinement of the README button gallery for better discoverability.

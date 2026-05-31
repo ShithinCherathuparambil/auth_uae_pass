@@ -1,6 +1,6 @@
 name: auth_uae_pass
 description: Official-style UAE PASS SDK for Flutter. Secure digital identity login, Emirates ID profile retrieval, Biometric FaceID (SOP3), and OIDC authentication for citizens and visitors.
-version: 0.1.0
+version: 0.1.1
 homepage: https://github.com/ShithinCherathuparambil/auth_uae_pass
 repository: https://github.com/ShithinCherathuparambil/auth_uae_pass
 
