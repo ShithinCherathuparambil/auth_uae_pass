@@ -15,7 +15,6 @@ The definitive, production-ready Flutter package for **UAE PASS**, the United Ar
 <table>
   <tr>
     <td align="center"><b>Authentication Flow</b></td>
-    <td align="center"><b>SDK Showcase Mockup</b></td>
   </tr>
   <tr>
     <td><img src="https://raw.githubusercontent.com/ShithinCherathuparambil/auth_uae_pass/main/assets/gif/uae_pass_login.gif" width="320" alt="UAE PASS Authentication Flow"/></td>
