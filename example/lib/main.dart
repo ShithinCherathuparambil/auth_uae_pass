@@ -1,4 +1,5 @@
 import 'package:auth_uae_pass/auth_uae_pass.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -119,6 +120,10 @@ class _UaePassScreenState extends State<UaePassScreen> {
     }
   }
 
+  void _simulateMockLogin() {
+    setState(() {});
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -145,6 +150,19 @@ class _UaePassScreenState extends State<UaePassScreen> {
                   child: const Text('Login with UAE PASS'),
                 ),
                 const SizedBox(height: 16),
+                if (kIsWeb) ...[
+                  OutlinedButton(
+                    onPressed: _simulateMockLogin,
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(double.infinity, 48),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('Simulate Successful Login (Mock Web)'),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 if (_authData != null)
                   TextButton.icon(
                     onPressed: _logout,

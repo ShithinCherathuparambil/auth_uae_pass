@@ -96,6 +96,8 @@ class UaePassAuthResult {
     this.errorDescription,
     this.callbackUri,
     this.sopLevel = UaePassSopLevel.none,
+    this.token,
+    this.profile,
   });
 
   final UaePassFlowStatus status;
@@ -104,6 +106,8 @@ class UaePassAuthResult {
   final String? errorDescription;
   final Uri? callbackUri;
   final UaePassSopLevel sopLevel;
+  final UaePassUserToken? token;
+  final UaePassUserProfile? profile;
 
   bool get isSuccess =>
       status == UaePassFlowStatus.loginSuccess ||
@@ -442,6 +446,7 @@ class UaePassCallbackParser {
     required Uri redirectUri,
     required List<String> cancelledUriPatterns,
     required bool isLogoutFlow,
+    bool skipHostCheck = false,
   }) {
     final urlValue = callbackUri.toString().toLowerCase();
 
@@ -455,9 +460,11 @@ class UaePassCallbackParser {
       }
     }
 
-    if (callbackUri.scheme != redirectUri.scheme ||
-        callbackUri.host != redirectUri.host) {
-      return null;
+    if (!skipHostCheck) {
+      if (callbackUri.scheme != redirectUri.scheme ||
+          callbackUri.host != redirectUri.host) {
+        return null;
+      }
     }
 
     if (isLogoutFlow) {

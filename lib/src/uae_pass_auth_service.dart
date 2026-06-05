@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:http/http.dart' as http;
 import 'package:url_launcher/url_launcher.dart';
+import 'web_auth.dart';
 
 class AuthUaePass {
   const AuthUaePass({this.config, this.onEvent, http.Client? httpClient})
@@ -73,6 +74,7 @@ class AuthUaePass {
 
   /// Ensures the global deep link listener is active and checks for initial links.
   static Future<void> _ensureInitialized([AppLinks? links]) async {
+    if (kIsWeb) return;
     if (_internalSubscription != null) return;
     final AppLinks appLinks = links ?? AppLinks();
 
@@ -294,6 +296,38 @@ class AuthUaePass {
         errorCode: authResult.errorCode,
         errorDescription: authResult.errorDescription,
         statusCode: authResult.statusCode,
+      );
+    }
+
+    if (authResult.token != null && authResult.profile != null) {
+      onEvent?.call(UaePassEvent.webviewLoaded);
+      onEvent?.call(UaePassEvent.tokenExchanged);
+      onEvent?.call(UaePassEvent.profileFetched);
+      onEvent?.call(UaePassEvent.loginSuccess);
+
+      UaePassSopLevel resolvedSop = authResult.sopLevel;
+      if (resolvedSop == UaePassSopLevel.none) {
+        final String? profileType =
+            authResult.profile?.userType?.toUpperCase() ??
+            authResult.profile?.profileType?.toUpperCase();
+
+        if (profileType != null) {
+          if (profileType.contains('SOP1')) {
+            resolvedSop = UaePassSopLevel.sop1;
+          } else if (profileType.contains('SOP2')) {
+            resolvedSop = UaePassSopLevel.sop2;
+          } else if (profileType.contains('SOP3')) {
+            resolvedSop = UaePassSopLevel.sop3;
+          }
+        }
+      }
+
+      return UaePassAuthData(
+        status: authResult.status,
+        token: authResult.token,
+        profile: authResult.profile,
+        statusCode: authResult.statusCode,
+        sopLevel: resolvedSop,
       );
     }
 
@@ -541,6 +575,8 @@ class AuthUaePass {
     required UaePassAuthRequest request,
     void Function(UaePassEvent)? onEvent,
   }) async {
+    final dynamic webPopup = kIsWeb ? openWebPopupPlaceholder() : null;
+
     await _ensureInitialized();
     Uri? pendingUri;
 
@@ -562,7 +598,13 @@ class AuthUaePass {
       if (isResumption) {
         UaePassLogger.i('Resuming interrupted flow via handleResumption...');
         if (!context.mounted) {
+          if (webPopup != null) {
+            try { webPopup.close(); } catch (_) {}
+          }
           return const UaePassAuthResult(status: UaePassFlowStatus.cancelled);
+        }
+        if (webPopup != null) {
+          try { webPopup.close(); } catch (_) {}
         }
         return authenticateWithResumption(
           context,
@@ -588,16 +630,31 @@ class AuthUaePass {
 
     // Ensure a clean slate by clearing cookies before starting a new flow.
     // This prevents stale session state from interfering with the new request.
-    try {
-      final CookieManager cookieManager = CookieManager.instance();
-      await cookieManager.deleteAllCookies();
-      UaePassLogger.d('WebView cookies cleared');
-    } catch (e, stack) {
-      UaePassLogger.e('Warning clearing cookies', e, stack);
+    if (!kIsWeb) {
+      try {
+        final CookieManager cookieManager = CookieManager.instance();
+        await cookieManager.deleteAllCookies();
+        UaePassLogger.d('WebView cookies cleared');
+      } catch (e, stack) {
+        UaePassLogger.e('Warning clearing cookies', e, stack);
+      }
     }
 
     if (!context.mounted) {
+      if (webPopup != null) {
+        try { webPopup.close(); } catch (_) {}
+      }
       return const UaePassAuthResult(status: UaePassFlowStatus.cancelled);
+    }
+
+    if (kIsWeb) {
+      return await openWebPopup(
+        initialUrl: initialUrl,
+        redirectUri: request.redirectUri,
+        popupWindow: webPopup,
+        cancelledUriPatterns: request.cancelledUriPatterns,
+        isLogoutFlow: false,
+      );
     }
 
     final String uaePassScheme =
@@ -691,7 +748,21 @@ class AuthUaePass {
       );
     }
 
-    _validateRedirectUri(resolvedRedirectUri);
+    if (kIsWeb) {
+      final webLogoutUrl = logoutUrl(
+        environment: resolvedEnvironment,
+        redirectUri: resolvedRedirectUri,
+      );
+      final result = await openWebPopup(
+        initialUrl: webLogoutUrl,
+        redirectUri: resolvedRedirectUri,
+        isLogoutFlow: true,
+      );
+      if (result.status == UaePassFlowStatus.logoutSuccess) {
+        onEvent?.call(UaePassEvent.logoutSuccess);
+      }
+      return result;
+    }
 
     UaePassLogger.i('Starting silent logout...');
     onEvent?.call(UaePassEvent.logoutStarted);

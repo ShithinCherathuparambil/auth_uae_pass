@@ -179,6 +179,23 @@ void main() {
     });
   });
 
+  test('UaePassAuthResult accepts optional token and profile', () {
+    final token = UaePassUserToken.fromJson(<String, dynamic>{
+      'access_token': 'test-token',
+    });
+    final profile = UaePassUserProfile.fromJson(<String, dynamic>{
+      'fullnameEN': 'Test User',
+    });
+    final result = UaePassAuthResult(
+      status: UaePassFlowStatus.loginSuccess,
+      token: token,
+      profile: profile,
+    );
+
+    expect(result.token?.accessToken, 'test-token');
+    expect(result.profile?.fullNameEN, 'Test User');
+  });
+
   test('success helper returns true for loginSuccess status (SOP)', () {
     const result = UaePassAuthResult(
       status: UaePassFlowStatus.loginSuccess,
