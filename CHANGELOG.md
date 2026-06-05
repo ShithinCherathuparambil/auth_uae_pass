@@ -1,3 +1,7 @@
+## 0.1.2
+
+* **Web**: Confirmed full compatibility with Flutter Web, including cross-origin callback validation.
+
 ## 0.1.1
 
 * **Documentation**: Overhauled README.md with detailed setup, initialization patterns, silent logout, app presence probing, and token validation rules.
